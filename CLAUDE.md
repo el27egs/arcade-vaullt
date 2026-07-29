@@ -30,14 +30,9 @@ relevant page there (e.g. `01-app/`, `03-architecture/`) before relying on
 remembered Next.js behavior, especially for anything touching routing, data
 fetching, config, or the compiler.
 
-## Commands
+## Skills
 
-```bash
-npm run dev      # start dev server (Turbopack)
-npm run build    # production build
-npm run start    # run production build
-npm run lint     # eslint via eslint.config.mjs
-```
+Usa siempre /frontend-desing para diseñar la interfaz del usuario.
 
 There is no test setup in this repository yet.
 
