@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(claude --version)",
-      "Bash(npm -g config get prefix)"
+      "Bash(npm -g config get prefix)",
+      "Bash(npx tsc *)"
     ]
   },
   "skillOverrides": {
