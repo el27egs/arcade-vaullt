@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(claude --version)",
+      "Bash(npm -g config get prefix)"
+    ]
+  },
+  "skillOverrides": {
+    "team-chat-writer": "off"
+  }
+}
