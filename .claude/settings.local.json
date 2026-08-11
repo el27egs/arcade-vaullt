@@ -3,7 +3,12 @@
     "allow": [
       "Bash(claude --version)",
       "Bash(npm -g config get prefix)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(timeout 40 npm run build)",
+      "Bash(timeout 60 node node_modules/next/dist/bin/next build)",
+      "Bash(npm ls *)",
+      "Bash(npm install *)",
+      "Bash(timeout 90 node node_modules/next/dist/bin/next build)"
     ]
   },
   "skillOverrides": {
