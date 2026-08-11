@@ -8,7 +8,9 @@
       "Bash(timeout 60 node node_modules/next/dist/bin/next build)",
       "Bash(npm ls *)",
       "Bash(npm install *)",
-      "Bash(timeout 90 node node_modules/next/dist/bin/next build)"
+      "Bash(timeout 90 node node_modules/next/dist/bin/next build)",
+      "Bash(npm run *)",
+      "Bash(chmod +x node_modules/.bin/next node_modules/next/dist/bin/next)"
     ]
   },
   "skillOverrides": {
