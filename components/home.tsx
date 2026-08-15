@@ -275,7 +275,7 @@ export function Home() {
             Sin descargas. Sin costo. Solo diversión.
           </p>
           <div className="home-ctas">
-            <Link href="/games" className="btn xl pulse">
+            <Link href="/biblioteca" className="btn xl pulse">
               ▶ EXPLORAR JUEGOS
             </Link>
             <Link href="/ingresar" className="btn xl magenta">
@@ -320,7 +320,7 @@ export function Home() {
           ))}
         </div>
         <div style={{ textAlign: "center", marginTop: 24 }}>
-          <Link href="/games" className="btn lg">
+          <Link href="/biblioteca" className="btn lg">
             VER TODOS LOS JUEGOS →
           </Link>
         </div>
@@ -447,7 +447,7 @@ export function Home() {
       {/* FINAL CTA */}
       <section className="home-final reveal">
         <h2 className="final-title pixel">¿LISTO PARA JUGAR?</h2>
-        <Link href="/games" className="btn xl pulse final-cta">
+        <Link href="/biblioteca" className="btn xl pulse final-cta">
           INSERTAR MONEDA →
         </Link>
         <div className="final-tag">Gratis. Sin registro obligatorio. Empieza en segundos.</div>

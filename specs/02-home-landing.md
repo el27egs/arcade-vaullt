@@ -4,7 +4,7 @@
 > **Depends on:** SPEC 01 (mvp-pantallas-visuales)
 > **Date:** 2026-08-14
 > **Objective:** Portar la pantalla Home de `references/templates/home-about/home.jsx` a la
-> ruta `/`, reubicando la Biblioteca actual (spec 01) a `/games`.
+> ruta `/`, reubicando la Biblioteca actual (spec 01) a `/biblioteca`.
 
 ## Por qué existe este spec
 
@@ -21,9 +21,9 @@ esa brecha: agrega el Home real y reordena las rutas para que `/` sea la puerta 
   juegos (`GAMES.slice(0, 6)`), stats, "Actividad en Vivo" (ticker + top jugadores), precios/FAQ
   y CTA final.
 - Reubicación de la Biblioteca actual (componente `Library`, hoy montado en `app/page.tsx`) a
-  `app/games/page.tsx` (`/games`), sin cambios de comportamiento.
+  `app/biblioteca/page.tsx` (`/biblioteca`), sin cambios de comportamiento.
 - Actualización de `components/nav.tsx`: nuevo enlace "Inicio" (`/`), enlace "Biblioteca"
-  apuntando a `/games`, y lógica de estado activo ajustada — en desktop y en el panel móvil.
+  apuntando a `/biblioteca`, y lógica de estado activo ajustada — en desktop y en el panel móvil.
 - Estilos de Home (`.home*`, `.hero-*`, `.feature-*`, `.mini-*`, `.stat-*`, `.home-final*`,
   `.reveal`/`.reveal.in`, `@keyframes float`/`bounce`) portados literalmente al final de
   `app/globals.css`.
@@ -48,7 +48,7 @@ tipar una estructura compartida.
 
 ## Implementation plan
 
-1. Crear `app/games/page.tsx` con `export default function GamesPage() { return <Library />; }`,
+1. Crear `app/biblioteca/page.tsx` con `export default function BibliotecaPage() { return <Library />; }`,
    portando literalmente el contenido actual de `app/page.tsx`.
 2. Portar al final de `app/globals.css` el bloque "HOME PAGE" de
    `references/templates/home-about/styles.css` (selectores `.home`, `.home-hero*`, `.hero-*`,
@@ -59,7 +59,7 @@ tipar una estructura compartida.
    `.home-final*`, `.final-*`, `.reveal`/`.reveal.in`), sin tocar nada existente.
 3. Crear `components/home.tsx` (`"use client"`) portando `Home`, `FloatingSilhouettes`,
    `MiniCard` y `FeatureIcon` desde `home.jsx`:
-   - Reemplazar `navigate({ name: "biblioteca" })` por navegación a `/games`.
+   - Reemplazar `navigate({ name: "biblioteca" })` por navegación a `/biblioteca`.
    - Reemplazar `navigate({ name: "auth" })` por navegación a `/ingresar`.
    - Reemplazar `navigate({ name: "detalle", id })` (click en `MiniCard`) por
      `router.push(\`/juegos/${game.id}\`)`, mismo patrón que `GameCard` en
@@ -71,8 +71,8 @@ tipar una estructura compartida.
    - Copiar literalmente los arrays de "Actividad en Vivo" y "Top Jugadores".
 4. Reemplazar `app/page.tsx` para que renderice `<Home />` en vez de `<Library />`.
 5. Actualizar `components/nav.tsx`: agregar enlace "Inicio" (activo en `pathname === "/"`),
-   cambiar el enlace "Biblioteca" para apuntar a `/games` (activo en
-   `pathname === "/games" || pathname.startsWith("/juegos")`), replicando ambos cambios en el
+   cambiar el enlace "Biblioteca" para apuntar a `/biblioteca` (activo en
+   `pathname === "/biblioteca" || pathname.startsWith("/juegos")`), replicando ambos cambios en el
    panel móvil.
 
 Cada paso deja el proyecto compilando y navegable.
@@ -81,23 +81,24 @@ Cada paso deja el proyecto compilando y navegable.
 
 - [ ] `/` muestra la nueva pantalla Home (hero, "¿Por qué Arcade Vault?", vista previa de
       juegos, stats, actividad en vivo, precios, CTA final) en vez de la Biblioteca.
-- [ ] `/games` muestra la Biblioteca (búsqueda + filtro por categoría) que antes vivía en `/`,
+- [ ] `/biblioteca` muestra la Biblioteca (búsqueda + filtro por categoría) que antes vivía en `/`,
       con el mismo comportamiento.
-- [ ] "EXPLORAR JUEGOS" y "VER TODOS LOS JUEGOS →" navegan a `/games`.
+- [ ] "EXPLORAR JUEGOS" y "VER TODOS LOS JUEGOS →" navegan a `/biblioteca`.
 - [ ] "CREAR CUENTA" y "EMPEZAR GRATIS →" navegan a `/ingresar`.
 - [ ] Las tarjetas de "Juegos disponibles ahora" (primeros 6 juegos de `lib/data.ts`) navegan a
       `/juegos/[id]` con el juego correcto.
 - [ ] "VER SALÓN →" navega a `/salon-de-la-fama`.
-- [ ] El CTA final "INSERTAR MONEDA →" navega a `/games`.
+- [ ] El CTA final "INSERTAR MONEDA →" navega a `/biblioteca`.
 - [ ] Las secciones con clase `.reveal` se animan al hacer scroll (`IntersectionObserver`).
-- [ ] El Nav muestra "Inicio" activo en `/` y "Biblioteca" activo en `/games` y en `/juegos/*`,
+- [ ] El Nav muestra "Inicio" activo en `/` y "Biblioteca" activo en `/biblioteca` y en `/juegos/*`,
       tanto en desktop como en el panel móvil.
 - [ ] `npm run build` completa sin errores de TypeScript ni de ESLint.
 
 ## Decisions
 
-- **Yes:** Home pasa a vivir en `/`, Biblioteca se mueve a `/games`. Razón: confirmado
-  explícitamente por el usuario (ruta en inglés, no `/biblioteca`).
+- **Yes:** Home pasa a vivir en `/`, Biblioteca se mueve a `/biblioteca`. Razón: decisión
+  original (ruta en inglés `/games`) revertida durante la implementación a pedido explícito del
+  usuario — vuelve a `/biblioteca`, como estaba antes de este spec.
 - **No:** incluir la pantalla "Acerca de" (`about.jsx`) en este spec. Razón: confirmado por el
   usuario — queda para un spec futuro.
 - **Yes:** portar literalmente los arrays de "Actividad en Vivo" y "Top Jugadores" tal cual
@@ -109,7 +110,7 @@ Cada paso deja el proyecto compilando y navegable.
 - **Yes:** `next/link` para los CTAs de destino fijo y `router.push` para `MiniCard`, mismo
   patrón que `components/library.tsx` y `components/game-detail.tsx` de spec 01.
 - **No:** tocar `app/juegos/*`, `app/ingresar`, `app/salon-de-la-fama`, `lib/*` — fuera de
-  alcance, este spec solo reestructura `/` y agrega `/games`.
+  alcance, este spec solo reestructura `/` y agrega `/biblioteca`.
 
 ## Risks
 
