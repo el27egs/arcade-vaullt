@@ -10,7 +10,12 @@
       "Bash(npm install *)",
       "Bash(timeout 90 node node_modules/next/dist/bin/next build)",
       "Bash(npm run *)",
-      "Bash(chmod +x node_modules/.bin/next node_modules/next/dist/bin/next)"
+      "Bash(chmod +x node_modules/.bin/next node_modules/next/dist/bin/next)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_resize",
+      "mcp__playwright__browser_take_screenshot",
+      "Bash(pkill -f \"http.server 8765\")",
+      "Bash(pkill -f \"next dev\")"
     ]
   },
   "skillOverrides": {
