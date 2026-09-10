@@ -28,5 +28,8 @@
   },
   "skillOverrides": {
     "team-chat-writer": "off"
-  }
+  },
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
 }
