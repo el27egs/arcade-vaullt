@@ -1,11 +1,11 @@
 "use client";
-
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/lib/user-context";
 import { saveScore } from "@/lib/scores";
 import type { Game } from "@/lib/data";
-
+import type { AsteroidesEngine } from "@/lib/games/asteroides/engine";
+import { AsteroidesCanvas } from "@/components/games/asteroides-canvas";
 export function GamePlayer({ game }: { game: Game }) {
   const router = useRouter();
   const { user } = useUser();
@@ -16,19 +16,56 @@ export function GamePlayer({ game }: { game: Game }) {
   const [over, setOver] = useState(false);
   const [name, setName] = useState(user ? user.name : "INVITADO");
   const [saved, setSaved] = useState(false);
-
+  // asteroides es un juego real: su motor escribe score/vidas/nivel/over.
+  const isAsteroides = game.id === "asteroides";
+  const engineRef = useRef<AsteroidesEngine | null>(null);
+  // Puntaje del mock, en una ref para que el intervalo decida el nivel sin efectos.
+  const mockScoreRef = useRef(0);
   useEffect(() => {
-    if (over || paused) return;
-    const t = setInterval(() => setScore((s) => s + Math.floor(10 + Math.random() * 90)), 220);
+    if (isAsteroides || over || paused) return;
+    const t = setInterval(() => {
+      const next = mockScoreRef.current + Math.floor(10 + Math.random() * 90);
+      mockScoreRef.current = next;
+      setScore(next);
+      if (next % 2500 < 100) setLevel((l) => l + 1);
+    }, 220);
     return () => clearInterval(t);
-  }, [over, paused]);
-
+  }, [isAsteroides, over, paused]);
   useEffect(() => {
-    if (score > 0 && score % 2500 < 100) setLevel((l) => l + 1);
-  }, [score]);
-
-  const endGame = () => setOver(true);
+    engineRef.current?.setPaused(paused);
+  }, [paused]);
+  // asteroides: P/Escape alternan la pausa; perder foco o visibilidad pausa.
+  useEffect(() => {
+    if (!isAsteroides) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== "KeyP" && e.code !== "Escape") return;
+      if (e.repeat || over) return;
+      const t = e.target;
+      if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement)
+        return;
+      e.preventDefault();
+      setPaused((p) => !p);
+    };
+    const pause = () => setPaused(true);
+    const onVisibility = () => {
+      if (document.hidden) pause();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("blur", pause);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("blur", pause);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [isAsteroides, over]);
+  const endGame = () => {
+    if (isAsteroides) engineRef.current?.end();
+    else setOver(true);
+  };
   const restart = () => {
+    engineRef.current?.restart();
+    mockScoreRef.current = 0;
     setScore(0);
     setLives(3);
     setLevel(1);
@@ -36,7 +73,6 @@ export function GamePlayer({ game }: { game: Game }) {
     setOver(false);
     setSaved(false);
   };
-
   return (
     <div className="av-player fade-in">
       <div className="player-hud">
@@ -67,28 +103,57 @@ export function GamePlayer({ game }: { game: Game }) {
           <button className="btn magenta" onClick={endGame}>
             FIN
           </button>
-          <button className="btn ghost" onClick={() => router.push(`/juegos/${game.id}`)}>
+          <button
+            className="btn ghost"
+            onClick={() => router.push(`/juegos/${game.id}`)}
+          >
             SALIR
           </button>
         </div>
       </div>
-
       <div className="crt">
         <div className="crt-screen">
-          <div className="game-arena">
-            <div className="grid-floor"></div>
-            <div className="enemy e1"></div>
-            <div className="enemy e2"></div>
-            <div className="enemy e3"></div>
-            <div className="player-ship"></div>
-          </div>
+          {isAsteroides ? (
+            <AsteroidesCanvas
+              onReady={(engine) => {
+                engineRef.current = engine;
+                engine.setPaused(paused);
+              }}
+              onScore={setScore}
+              onLives={setLives}
+              onLevel={setLevel}
+              onGameOver={(finalScore) => {
+                setScore(finalScore);
+                setOver(true);
+              }}
+            />
+          ) : (
+            <div className="game-arena">
+              <div className="grid-floor"></div>
+              <div className="enemy e1"></div>
+              <div className="enemy e2"></div>
+              <div className="enemy e3"></div>
+              <div className="player-ship"></div>
+            </div>
+          )}
           {paused && (
-            <div className="crt-content" style={{ background: "rgba(0,0,0,0.6)", zIndex: 5 }}>
+            <div
+              className="crt-content"
+              style={{ background: "rgba(0,0,0,0.6)", zIndex: 5 }}
+            >
               <div>
                 <div className="pixel neon-yellow" style={{ fontSize: 22 }}>
                   EN PAUSA
                 </div>
-                <div className="mono" style={{ fontSize: 11, color: "var(--ink-dim)", marginTop: 10, letterSpacing: "0.16em" }}>
+                <div
+                  className="mono"
+                  style={{
+                    fontSize: 11,
+                    color: "var(--ink-dim)",
+                    marginTop: 10,
+                    letterSpacing: "0.16em",
+                  }}
+                >
                   PULSA REANUDAR PARA CONTINUAR
                 </div>
               </div>
@@ -97,13 +162,10 @@ export function GamePlayer({ game }: { game: Game }) {
         </div>
         <div className="crt-bottom">
           <span className="led">SEÑAL OK</span>
-          <span>
-            {game.title} · CRT-83 · 60 HZ
-          </span>
+          <span>{game.title} · CRT-83 · 60 HZ</span>
           <span>CARGA · 1MB</span>
         </div>
       </div>
-
       {over && (
         <div className="modal-bd">
           <div className="modal">
@@ -114,7 +176,9 @@ export function GamePlayer({ game }: { game: Game }) {
               <div className="input-row">
                 <input
                   value={name}
-                  onChange={(e) => setName(e.target.value.toUpperCase().slice(0, 10))}
+                  onChange={(e) =>
+                    setName(e.target.value.toUpperCase().slice(0, 10))
+                  }
                   placeholder="TUS INICIALES"
                 />
                 <button

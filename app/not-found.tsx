@@ -1,5 +1,4 @@
 import Link from "next/link";
-
 export default function NotFound() {
   return (
     <div className="av-player fade-in">
@@ -10,7 +9,15 @@ export default function NotFound() {
               <div className="pixel neon-magenta" style={{ fontSize: 22 }}>
                 SEÑAL PERDIDA
               </div>
-              <div className="mono" style={{ fontSize: 11, color: "var(--ink-dim)", marginTop: 10, letterSpacing: "0.16em" }}>
+              <div
+                className="mono"
+                style={{
+                  fontSize: 11,
+                  color: "var(--ink-dim)",
+                  marginTop: 10,
+                  letterSpacing: "0.16em",
+                }}
+              >
                 ESTA PANTALLA NO EXISTE EN EL VAULT
               </div>
             </div>

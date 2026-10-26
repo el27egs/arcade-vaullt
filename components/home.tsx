@@ -1,10 +1,8 @@
 "use client";
-
 import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GAMES, type Game } from "@/lib/data";
-
 function useReveal() {
   useEffect(() => {
     const els = document.querySelectorAll(".reveal");
@@ -17,13 +15,12 @@ function useReveal() {
           }
         });
       },
-      { threshold: 0.12 }
+      { threshold: 0.12 },
     );
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
   }, []);
 }
-
 function FloatingSilhouettes() {
   return (
     <div className="home-silos" aria-hidden="true">
@@ -68,7 +65,15 @@ function FloatingSilhouettes() {
         <g fill="#00ff88">
           <rect x="10" y="0" width="4" height="24" />
           <rect x="0" y="10" width="24" height="4" />
-          <rect x="6" y="6" width="12" height="12" fill="none" stroke="#00ff88" strokeWidth="2" />
+          <rect
+            x="6"
+            y="6"
+            width="12"
+            height="12"
+            fill="none"
+            stroke="#00ff88"
+            strokeWidth="2"
+          />
         </g>
       </svg>
       {/* s5: UFO / platillo */}
@@ -124,7 +129,6 @@ function FloatingSilhouettes() {
     </div>
   );
 }
-
 function MiniCard({ game, onClick }: { game: Game; onClick: () => void }) {
   return (
     <div className="mini-card" onClick={onClick}>
@@ -138,8 +142,11 @@ function MiniCard({ game, onClick }: { game: Game; onClick: () => void }) {
     </div>
   );
 }
-
-function FeatureIcon({ kind }: { kind: "GAMEPAD" | "FREE" | "TROPHY" | "ROCKET" }) {
+function FeatureIcon({
+  kind,
+}: {
+  kind: "GAMEPAD" | "FREE" | "TROPHY" | "ROCKET";
+}) {
   const C = "currentColor";
   if (kind === "GAMEPAD")
     return (
@@ -159,7 +166,15 @@ function FeatureIcon({ kind }: { kind: "GAMEPAD" | "FREE" | "TROPHY" | "ROCKET" 
     return (
       <svg className="ft-icon" viewBox="0 0 16 16">
         <g fill={C}>
-          <rect x="3" y="3" width="10" height="10" fill="none" stroke={C} strokeWidth="1.5" />
+          <rect
+            x="3"
+            y="3"
+            width="10"
+            height="10"
+            fill="none"
+            stroke={C}
+            strokeWidth="1.5"
+          />
           <rect x="5" y="6" width="1.5" height="4" />
           <rect x="5" y="6" width="4" height="1.5" />
           <rect x="5" y="8" width="3" height="1" />
@@ -199,7 +214,6 @@ function FeatureIcon({ kind }: { kind: "GAMEPAD" | "FREE" | "TROPHY" | "ROCKET" 
     );
   return null;
 }
-
 const FEATURES = [
   {
     i: "GAMEPAD" as const,
@@ -226,13 +240,11 @@ const FEATURES = [
     c: "green",
   },
 ];
-
 const STATS = [
   { n: "12+", u: "JUEGOS", s: "Y CONTANDO" },
   { n: "MILES", u: "DE PARTIDAS", s: "JUGADAS CADA DÍA" },
   { n: "GLOBAL", u: "RANKING", s: "COMPITE CON EL MUNDO" },
 ];
-
 const TICKER = [
   { p: "NEONFOX", g: "Caída", s: 184220, t: "hace 2 min", c: "magenta" },
   { p: "PX_KAI", g: "Glotón", s: 96400, t: "hace 5 min", c: "yellow" },
@@ -242,7 +254,6 @@ const TICKER = [
   { p: "ARKADYA", g: "Serpentina", s: 7820, t: "hace 24 min", c: "green" },
   { p: "CYBER_LU", g: "Ranaria", s: 18900, t: "hace 31 min", c: "yellow" },
 ];
-
 const TOP_PLAYERS = [
   { r: 1, p: "NEONFOX", s: 312840 },
   { r: 2, p: "PX_KAI", s: 248110 },
@@ -250,11 +261,9 @@ const TOP_PLAYERS = [
   { r: 4, p: "VAULT_07", s: 154300 },
   { r: 5, p: "GLITCHA", s: 138900 },
 ];
-
 export function Home() {
   const router = useRouter();
   useReveal();
-
   return (
     <div className="home fade-in">
       {/* HERO */}
@@ -288,7 +297,6 @@ export function Home() {
           </div>
         </div>
       </section>
-
       {/* WHY */}
       <section className="home-section reveal">
         <div className="section-head">
@@ -298,7 +306,11 @@ export function Home() {
         </div>
         <div className="feature-grid">
           {FEATURES.map((f, i) => (
-            <div key={i} className={"feature-card " + f.c} style={{ transitionDelay: i * 80 + "ms" }}>
+            <div
+              key={i}
+              className={"feature-card " + f.c}
+              style={{ transitionDelay: i * 80 + "ms" }}
+            >
               <FeatureIcon kind={f.i} />
               <div className="ft-title pixel">{f.t}</div>
               <div className="ft-desc">{f.d}</div>
@@ -306,7 +318,6 @@ export function Home() {
           ))}
         </div>
       </section>
-
       {/* GAMES PREVIEW */}
       <section className="home-section reveal">
         <div className="section-head">
@@ -316,7 +327,11 @@ export function Home() {
         </div>
         <div className="mini-rail">
           {GAMES.slice(0, 6).map((g) => (
-            <MiniCard key={g.id} game={g} onClick={() => router.push(`/juegos/${g.id}`)} />
+            <MiniCard
+              key={g.id}
+              game={g}
+              onClick={() => router.push(`/juegos/${g.id}`)}
+            />
           ))}
         </div>
         <div style={{ textAlign: "center", marginTop: 24 }}>
@@ -325,12 +340,15 @@ export function Home() {
           </Link>
         </div>
       </section>
-
       {/* STATS */}
       <section className="home-stats reveal">
         <div className="stats-inner">
           {STATS.map((st, i) => (
-            <div key={i} className="stat-block" style={{ transitionDelay: i * 90 + "ms" }}>
+            <div
+              key={i}
+              className="stat-block"
+              style={{ transitionDelay: i * 90 + "ms" }}
+            >
               <div className="stat-n neon-yellow">{st.n}</div>
               <div className="stat-u pixel">{st.u}</div>
               <div className="stat-s">{st.s}</div>
@@ -338,7 +356,6 @@ export function Home() {
           ))}
         </div>
       </section>
-
       {/* RECENT ACTIVITY / LEADERBOARD */}
       <section className="home-section reveal">
         <div className="section-head">
@@ -353,7 +370,11 @@ export function Home() {
             </div>
             <div className="ticker">
               {TICKER.map((r, i) => (
-                <div key={i} className="tick-row" style={{ animationDelay: i * 60 + "ms" }}>
+                <div
+                  key={i}
+                  className="tick-row"
+                  style={{ animationDelay: i * 60 + "ms" }}
+                >
                   <span className={"tk-p neon-" + r.c}>{r.p}</span>
                   <span className="tk-mid">▸ {r.g}</span>
                   <span className="tk-s">+{r.s.toLocaleString("es-ES")}</span>
@@ -362,20 +383,36 @@ export function Home() {
               ))}
             </div>
           </div>
-
           <div className="activity-card">
             <div className="ac-head">
-              <div className="ac-title pixel neon-magenta">▸ TOP JUGADORES · HOY</div>
+              <div className="ac-title pixel neon-magenta">
+                ▸ TOP JUGADORES · HOY
+              </div>
               <Link href="/salon-de-la-fama" className="lb-link">
                 VER SALÓN →
               </Link>
             </div>
             <div className="top-list">
               {TOP_PLAYERS.map((r, i) => (
-                <div key={i} className={"top-row" + (i === 0 ? " top1" : i === 1 ? " top2" : i === 2 ? " top3" : "")}>
+                <div
+                  key={i}
+                  className={
+                    "top-row" +
+                    (i === 0
+                      ? " top1"
+                      : i === 1
+                        ? " top2"
+                        : i === 2
+                          ? " top3"
+                          : "")
+                  }
+                >
                   <span className="tp-rk">#{String(r.r).padStart(2, "0")}</span>
                   <span className="tp-bar">
-                    <span className="tp-fill" style={{ width: 100 - i * 16 + "%" }}></span>
+                    <span
+                      className="tp-fill"
+                      style={{ width: 100 - i * 16 + "%" }}
+                    ></span>
                   </span>
                   <span className="tp-p">{r.p}</span>
                   <span className="tp-s">{r.s.toLocaleString("es-ES")}</span>
@@ -385,7 +422,6 @@ export function Home() {
           </div>
         </div>
       </section>
-
       {/* PRICING */}
       <section className="home-section reveal">
         <div className="section-head">
@@ -410,7 +446,11 @@ export function Home() {
               <li>✔ Nuevos juegos cada mes</li>
               <li>✔ Funciona en cualquier navegador</li>
             </ul>
-            <Link href="/ingresar" className="btn xl pulse" style={{ width: "100%" }}>
+            <Link
+              href="/ingresar"
+              className="btn xl pulse"
+              style={{ width: "100%" }}
+            >
               EMPEZAR GRATIS →
             </Link>
             <div className="pc-foot">No pedimos tarjeta. Nunca lo haremos.</div>
@@ -420,37 +460,41 @@ export function Home() {
               PLAY
             </div>
           </div>
-
           <div className="pricing-faq">
             <div className="faq-item">
               <div className="faq-q pixel">¿REALMENTE ES GRATIS?</div>
               <div className="faq-a">
-                Sí. Arcade Vault es un proyecto sin fines de lucro hecho por amor a los clásicos. No hay versión
-                &quot;premium&quot; escondida.
+                Sí. Arcade Vault es un proyecto sin fines de lucro hecho por
+                amor a los clásicos. No hay versión &quot;premium&quot;
+                escondida.
               </div>
             </div>
             <div className="faq-item">
               <div className="faq-q pixel">¿NECESITO CREAR CUENTA?</div>
               <div className="faq-a">
-                No. Puedes jugar como invitado. Si quieres guardar tu puntuación y aparecer en el ranking,
-                regístrate en 10 segundos.
+                No. Puedes jugar como invitado. Si quieres guardar tu puntuación
+                y aparecer en el ranking, regístrate en 10 segundos.
               </div>
             </div>
             <div className="faq-item">
               <div className="faq-q pixel">¿CÓMO SOBREVIVEN SIN COBRAR?</div>
-              <div className="faq-a">Es un proyecto comunitario. Si te gusta, compártelo. Esa es toda la moneda que aceptamos.</div>
+              <div className="faq-a">
+                Es un proyecto comunitario. Si te gusta, compártelo. Esa es toda
+                la moneda que aceptamos.
+              </div>
             </div>
           </div>
         </div>
       </section>
-
       {/* FINAL CTA */}
       <section className="home-final reveal">
         <h2 className="final-title pixel">¿LISTO PARA JUGAR?</h2>
         <Link href="/biblioteca" className="btn xl pulse final-cta">
           INSERTAR MONEDA →
         </Link>
-        <div className="final-tag">Gratis. Sin registro obligatorio. Empieza en segundos.</div>
+        <div className="final-tag">
+          Gratis. Sin registro obligatorio. Empieza en segundos.
+        </div>
       </section>
     </div>
   );
