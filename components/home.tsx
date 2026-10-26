@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GAMES, type Game } from "@/lib/data";
+import type { LeaderboardRow } from "@/lib/queries";
 function useReveal() {
   useEffect(() => {
     const els = document.querySelectorAll(".reveal");
@@ -245,23 +246,24 @@ const STATS = [
   { n: "MILES", u: "DE PARTIDAS", s: "JUGADAS CADA DÍA" },
   { n: "GLOBAL", u: "RANKING", s: "COMPITE CON EL MUNDO" },
 ];
-const TICKER = [
-  { p: "NEONFOX", g: "Caída", s: 184220, t: "hace 2 min", c: "magenta" },
-  { p: "PX_KAI", g: "Glotón", s: 96400, t: "hace 5 min", c: "yellow" },
-  { p: "Z3R0COOL", g: "Invasores", s: 54190, t: "hace 8 min", c: "green" },
-  { p: "VAULT_07", g: "Rocas", s: 41200, t: "hace 12 min", c: "cyan" },
-  { p: "GLITCHA", g: "Bloque Buster", s: 28450, t: "hace 18 min", c: "cyan" },
-  { p: "ARKADYA", g: "Serpentina", s: 7820, t: "hace 24 min", c: "green" },
-  { p: "CYBER_LU", g: "Ranaria", s: 18900, t: "hace 31 min", c: "yellow" },
-];
-const TOP_PLAYERS = [
-  { r: 1, p: "NEONFOX", s: 312840 },
-  { r: 2, p: "PX_KAI", s: 248110 },
-  { r: 3, p: "M00NRYU", s: 196720 },
-  { r: 4, p: "VAULT_07", s: 154300 },
-  { r: 5, p: "GLITCHA", s: 138900 },
-];
-export function Home() {
+const TICK_COLORS = ["magenta", "yellow", "green", "cyan"] as const;
+// Tiempo relativo ya calculado en el servidor (evita desajustes de hidratación).
+export type ActivityRow = LeaderboardRow & { ago: string };
+// null = la consulta a Supabase falló (SIN SEÑAL dentro de las tarjetas).
+export type HomeActivity = {
+  recent: ActivityRow[];
+  top: LeaderboardRow[];
+} | null;
+function ActivityEmpty({ error }: { error?: boolean }) {
+  return (
+    <div className={"lb-empty compact" + (error ? " error" : "")}>
+      <div className="lb-empty-title">
+        {error ? "SIN SEÑAL" : "SÉ EL PRIMERO EN ENTRAR AL SALÓN DE LA FAMA"}
+      </div>
+    </div>
+  );
+}
+export function Home({ activity }: { activity: HomeActivity }) {
   const router = useRouter();
   useReveal();
   return (
@@ -368,57 +370,75 @@ export function Home() {
             <div className="ac-head">
               <div className="ac-title pixel">▸ ÚLTIMAS PUNTUACIONES</div>
             </div>
-            <div className="ticker">
-              {TICKER.map((r, i) => (
-                <div
-                  key={i}
-                  className="tick-row"
-                  style={{ animationDelay: i * 60 + "ms" }}
-                >
-                  <span className={"tk-p neon-" + r.c}>{r.p}</span>
-                  <span className="tk-mid">▸ {r.g}</span>
-                  <span className="tk-s">+{r.s.toLocaleString("es-ES")}</span>
-                  <span className="tk-t">{r.t}</span>
-                </div>
-              ))}
-            </div>
+            {!activity || activity.recent.length === 0 ? (
+              <ActivityEmpty error={!activity} />
+            ) : (
+              <div className="ticker">
+                {activity.recent.map((r, i) => (
+                  <div
+                    key={`${r.createdAt}-${i}`}
+                    className="tick-row"
+                    style={{ animationDelay: i * 60 + "ms" }}
+                  >
+                    <span
+                      className={
+                        "tk-p neon-" + TICK_COLORS[i % TICK_COLORS.length]
+                      }
+                    >
+                      {r.playerName}
+                    </span>
+                    <span className="tk-mid">▸ {r.gameTitle}</span>
+                    <span className="tk-s">
+                      +{r.score.toLocaleString("es-ES")}
+                    </span>
+                    <span className="tk-t">{r.ago}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="activity-card">
             <div className="ac-head">
-              <div className="ac-title pixel neon-magenta">
-                ▸ TOP JUGADORES · HOY
-              </div>
+              <div className="ac-title pixel neon-magenta">▸ TOP JUGADORES</div>
               <Link href="/salon-de-la-fama" className="lb-link">
                 VER SALÓN →
               </Link>
             </div>
-            <div className="top-list">
-              {TOP_PLAYERS.map((r, i) => (
-                <div
-                  key={i}
-                  className={
-                    "top-row" +
-                    (i === 0
-                      ? " top1"
-                      : i === 1
-                        ? " top2"
-                        : i === 2
-                          ? " top3"
-                          : "")
-                  }
-                >
-                  <span className="tp-rk">#{String(r.r).padStart(2, "0")}</span>
-                  <span className="tp-bar">
-                    <span
-                      className="tp-fill"
-                      style={{ width: 100 - i * 16 + "%" }}
-                    ></span>
-                  </span>
-                  <span className="tp-p">{r.p}</span>
-                  <span className="tp-s">{r.s.toLocaleString("es-ES")}</span>
-                </div>
-              ))}
-            </div>
+            {!activity || activity.top.length === 0 ? (
+              <ActivityEmpty error={!activity} />
+            ) : (
+              <div className="top-list">
+                {activity.top.map((r, i) => (
+                  <div
+                    key={`${r.createdAt}-${i}`}
+                    className={
+                      "top-row" +
+                      (i === 0
+                        ? " top1"
+                        : i === 1
+                          ? " top2"
+                          : i === 2
+                            ? " top3"
+                            : "")
+                    }
+                  >
+                    <span className="tp-rk">
+                      #{String(r.rank).padStart(2, "0")}
+                    </span>
+                    <span className="tp-bar">
+                      <span
+                        className="tp-fill"
+                        style={{ width: 100 - i * 16 + "%" }}
+                      ></span>
+                    </span>
+                    <span className="tp-p">{r.playerName}</span>
+                    <span className="tp-s">
+                      {r.score.toLocaleString("es-ES")}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>

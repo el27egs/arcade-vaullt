@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { GameDetail } from "@/components/game-detail";
 import { GAMES } from "@/lib/data";
+import { getDbGame, getLeaderboard } from "@/lib/queries";
 export default async function GameDetailPage({
   params,
 }: {
@@ -9,5 +10,9 @@ export default async function GameDetailPage({
   const { id } = await params;
   const game = GAMES.find((g) => g.id === id);
   if (!game) notFound();
-  return <GameDetail game={game} />;
+  const [dbGame, scores] = await Promise.all([
+    getDbGame(id),
+    getLeaderboard(id),
+  ]);
+  return <GameDetail game={game} dbGame={dbGame} scores={scores} />;
 }
