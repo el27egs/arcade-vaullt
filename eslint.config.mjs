@@ -16,6 +16,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Código de referencia (juegos originales y plantillas), no es parte de la app.
+    "references/**",
+    // Configuración y hooks de Claude Code.
+    ".claude/**",
   ]),
 ]);
 export default eslintConfig;

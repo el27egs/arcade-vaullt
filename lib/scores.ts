@@ -4,7 +4,6 @@ export interface SavedScore {
   name: string;
   at: number;
 }
-
 export function getSavedScores(): SavedScore[] {
   try {
     const stored = localStorage.getItem("av_scores");
@@ -13,7 +12,6 @@ export function getSavedScores(): SavedScore[] {
     return [];
   }
 }
-
 export function saveScore(entry: Omit<SavedScore, "at">): void {
   try {
     const all = getSavedScores();

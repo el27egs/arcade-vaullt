@@ -1,8 +1,15 @@
 "use client";
-
-import { startTransition, useActionState, useEffect, useState, type FormEvent } from "react";
-import { sendContactMessage, type ContactResult } from "@/app/acerca-de/actions";
-
+import {
+  startTransition,
+  useActionState,
+  useEffect,
+  useState,
+  type FormEvent,
+} from "react";
+import {
+  sendContactMessage,
+  type ContactResult,
+} from "@/app/acerca-de/actions";
 function useReveal() {
   useEffect(() => {
     const els = document.querySelectorAll(".reveal");
@@ -15,35 +22,41 @@ function useReveal() {
           }
         });
       },
-      { threshold: 0.12 }
+      { threshold: 0.12 },
     );
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
   }, []);
 }
-
 const HIGHLIGHTS = [
-  { kind: "HEART" as const, text: "HECHO CON ❤️ PARA JUGADORES", color: "magenta" },
-  { kind: "BROWSER" as const, text: "JUEGOS EN HTML — CORREN EN CUALQUIER NAVEGADOR", color: "cyan" },
-  { kind: "PLANT" as const, text: "PROYECTO EN CONSTANTE CRECIMIENTO", color: "green" },
+  {
+    kind: "HEART" as const,
+    text: "HECHO CON ❤️ PARA JUGADORES",
+    color: "magenta",
+  },
+  {
+    kind: "BROWSER" as const,
+    text: "JUEGOS EN HTML — CORREN EN CUALQUIER NAVEGADOR",
+    color: "cyan",
+  },
+  {
+    kind: "PLANT" as const,
+    text: "PROYECTO EN CONSTANTE CRECIMIENTO",
+    color: "green",
+  },
 ];
-
 export function About() {
   useReveal();
-
   const [form, setForm] = useState({ name: "", email: "", msg: "" });
   const [shake, setShake] = useState(false);
   const [sentName, setSentName] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [result, formAction, isPending] = useActionState<ContactResult | null, FormData>(
-    sendContactMessage,
-    null
-  );
-
-  useEffect(() => {
-    if (result?.ok) setSuccess(true);
-  }, [result]);
-
+  const [result, formAction, isPending] = useActionState<
+    ContactResult | null,
+    FormData
+  >(sendContactMessage, null);
+  // Resultado que el usuario ya cerró con resetForm; el éxito se deriva del resultado.
+  const [dismissed, setDismissed] = useState<ContactResult | null>(null);
+  const success = !!result?.ok && result !== dismissed;
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!form.name.trim() || !form.email.trim() || !form.msg.trim()) {
@@ -60,13 +73,11 @@ export function About() {
       formAction(fd);
     });
   };
-
   const resetForm = () => {
     setForm({ name: "", email: "", msg: "" });
     setSentName(null);
-    setSuccess(false);
+    setDismissed(result);
   };
-
   return (
     <div className="about fade-in">
       {/* ABOUT */}
@@ -74,11 +85,11 @@ export function About() {
         <div className="kicker pixel neon-yellow">▸ ACERCA DE</div>
         <h1 className="about-title">ACERCA DE ARCADE VAULT</h1>
         <p className="about-mission">
-          ARCADE VAULT nació del amor por los videojuegos clásicos. Nuestra misión es preservar y
-          celebrar los arcades que definieron una generación, haciéndolos accesibles para todos,
-          en cualquier lugar y sin costo.
+          ARCADE VAULT nació del amor por los videojuegos clásicos. Nuestra
+          misión es preservar y celebrar los arcades que definieron una
+          generación, haciéndolos accesibles para todos, en cualquier lugar y
+          sin costo.
         </p>
-
         <div className="highlight-row">
           {HIGHLIGHTS.map((h, i) => (
             <div
@@ -92,7 +103,6 @@ export function About() {
           ))}
         </div>
       </section>
-
       {/* divider banner */}
       <div className="about-divider reveal" aria-hidden="true">
         <div className="div-bar"></div>
@@ -103,7 +113,6 @@ export function About() {
         </div>
         <div className="div-bar"></div>
       </div>
-
       {/* CONTACT */}
       <section className="about-contact reveal">
         <div className="contact-grid">
@@ -111,8 +120,8 @@ export function About() {
             <div className="kicker pixel neon-cyan">▸ CONTACTO</div>
             <h2 className="contact-title">CONTÁCTANOS</h2>
             <p className="contact-sub">
-              ¿Tienes alguna sugerencia, quieres proponer un juego, o simplemente quieres saludar?
-              Escríbenos.
+              ¿Tienes alguna sugerencia, quieres proponer un juego, o
+              simplemente quieres saludar? Escríbenos.
             </p>
             <div className="contact-tips">
               <div className="tip">
@@ -126,8 +135,10 @@ export function About() {
               </div>
             </div>
           </div>
-
-          <form className={"contact-form" + (shake ? " shake" : "")} onSubmit={onSubmit}>
+          <form
+            className={"contact-form" + (shake ? " shake" : "")}
+            onSubmit={onSubmit}
+          >
             {!success ? (
               <>
                 <div className="field">
@@ -143,7 +154,9 @@ export function About() {
                   <input
                     type="email"
                     value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, email: e.target.value })
+                    }
                     placeholder="jugador@vault.gg"
                   />
                 </div>
@@ -157,7 +170,9 @@ export function About() {
                   ></textarea>
                 </div>
                 {result?.ok === false && (
-                  <p className="form-error">⚠ {result.error} Inténtalo de nuevo.</p>
+                  <p className="form-error">
+                    ⚠ {result.error} Inténtalo de nuevo.
+                  </p>
                 )}
                 <button
                   className="btn xl press"
@@ -178,17 +193,23 @@ export function About() {
                 </div>
                 <div className="term-body">
                   <div className="line">
-                    <span className="prompt">vault@arcade:~$</span> ./send_message --to=team
+                    <span className="prompt">vault@arcade:~$</span>{" "}
+                    ./send_message --to=team
                   </div>
                   <div className="line dim">[OK] Conectando con servidor…</div>
                   <div className="line dim">[OK] Validando contenido…</div>
                   <div className="line dim">[OK] Transmitiendo paquete…</div>
                   <div className="line success">
                     &gt; MENSAJE RECIBIDO. TE RESPONDEREMOS PRONTO. GRACIAS,{" "}
-                    {(sentName ?? "").toUpperCase()}.<span className="caret">_</span>
+                    {(sentName ?? "").toUpperCase()}.
+                    <span className="caret">_</span>
                   </div>
                   <div style={{ marginTop: 18 }}>
-                    <button className="btn ghost" type="button" onClick={resetForm}>
+                    <button
+                      className="btn ghost"
+                      type="button"
+                      onClick={resetForm}
+                    >
                       ENVIAR OTRO MENSAJE
                     </button>
                   </div>
@@ -201,7 +222,6 @@ export function About() {
     </div>
   );
 }
-
 function HighlightIcon({ kind }: { kind: "HEART" | "BROWSER" | "PLANT" }) {
   const C = "currentColor";
   if (kind === "HEART")
@@ -226,7 +246,15 @@ function HighlightIcon({ kind }: { kind: "HEART" | "BROWSER" | "PLANT" }) {
     return (
       <svg className="hl-icon" viewBox="0 0 16 16">
         <g fill={C}>
-          <rect x="1" y="2" width="14" height="12" fill="none" stroke={C} strokeWidth="1.4" />
+          <rect
+            x="1"
+            y="2"
+            width="14"
+            height="12"
+            fill="none"
+            stroke={C}
+            strokeWidth="1.4"
+          />
           <rect x="1" y="2" width="14" height="3" />
           <rect x="3" y="3" width="1" height="1" fill="#0a0a0f" />
           <rect x="5" y="3" width="1" height="1" fill="#0a0a0f" />
