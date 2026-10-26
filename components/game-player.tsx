@@ -1,12 +1,49 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/lib/user-context";
-import { saveScore } from "@/lib/scores";
+import { saveScore } from "@/app/juegos/[id]/jugar/actions";
 import type { Game } from "@/lib/data";
 import type { AsteroidesEngine } from "@/lib/games/asteroides/engine";
 import { AsteroidesCanvas } from "@/components/games/asteroides-canvas";
-export function GamePlayer({ game }: { game: Game }) {
+// Último nombre guardado con éxito, leído como store externo (sin setState en efectos).
+const NAME_KEY = "av_player_name";
+const MAX_NAME = 20;
+const nameListeners = new Set<() => void>();
+function readStoredName(): string | null {
+  try {
+    return localStorage.getItem(NAME_KEY);
+  } catch {
+    return null;
+  }
+}
+function writeStoredName(value: string) {
+  try {
+    localStorage.setItem(NAME_KEY, value);
+  } catch {
+    // localStorage unavailable — the name is just not remembered
+  }
+  nameListeners.forEach((l) => l());
+}
+function subscribeName(listener: () => void) {
+  nameListeners.add(listener);
+  return () => {
+    nameListeners.delete(listener);
+  };
+}
+export function GamePlayer({
+  game,
+  canSave,
+}: {
+  game: Game;
+  canSave: boolean;
+}) {
   const router = useRouter();
   const { user } = useUser();
   const [score, setScore] = useState(0);
@@ -14,8 +51,35 @@ export function GamePlayer({ game }: { game: Game }) {
   const [level, setLevel] = useState(1);
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState(false);
-  const [name, setName] = useState(user ? user.name : "INVITADO");
+  // Prellenado: av_player_name > user.name > vacío; lo que se escribe tiene prioridad.
+  const storedName = useSyncExternalStore(
+    subscribeName,
+    readStoredName,
+    () => null,
+  );
+  const [draftName, setDraftName] = useState<string | null>(null);
+  const name = (draftName ?? storedName ?? user?.name ?? "").slice(0, MAX_NAME);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, startSaving] = useTransition();
+  const onSave = () => {
+    const playerName = name.trim();
+    if (!playerName) return;
+    setSaveError(null);
+    startSaving(async () => {
+      try {
+        const result = await saveScore({ gameId: game.id, playerName, score });
+        if (result.ok) {
+          writeStoredName(playerName);
+          setSaved(true);
+        } else {
+          setSaveError(result.error);
+        }
+      } catch {
+        setSaveError("No se pudo conectar. Intenta de nuevo.");
+      }
+    });
+  };
   // asteroides es un juego real: su motor escribe score/vidas/nivel/over.
   const isAsteroides = game.id === "asteroides";
   const engineRef = useRef<AsteroidesEngine | null>(null);
@@ -72,6 +136,7 @@ export function GamePlayer({ game }: { game: Game }) {
     setPaused(false);
     setOver(false);
     setSaved(false);
+    setSaveError(null);
   };
   return (
     <div className="av-player fade-in">
@@ -80,7 +145,7 @@ export function GamePlayer({ game }: { game: Game }) {
           <div className="hud-stat">
             <div className="l">Jugador</div>
             <div className="v" style={{ color: "var(--ink)" }}>
-              {name}
+              {name.trim() || "INVITADO"}
             </div>
           </div>
           <div className="hud-stat">
@@ -172,25 +237,37 @@ export function GamePlayer({ game }: { game: Game }) {
             <h2>FIN DEL JUEGO</h2>
             <div className="final-label">PUNTUACIÓN FINAL</div>
             <div className="final">{score.toLocaleString("es-ES")}</div>
-            {!saved ? (
-              <div className="input-row">
-                <input
-                  value={name}
-                  onChange={(e) =>
-                    setName(e.target.value.toUpperCase().slice(0, 10))
-                  }
-                  placeholder="TUS INICIALES"
-                />
-                <button
-                  className="btn yellow"
-                  onClick={() => {
-                    saveScore({ game: game.id, score, name });
-                    setSaved(true);
-                  }}
-                >
-                  GUARDAR PUNTUACIÓN
-                </button>
+            {!canSave ? (
+              <div className="toast-saved demo">
+                MODO DEMO · ESTA PUNTUACIÓN NO SE GUARDA
               </div>
+            ) : !saved ? (
+              <>
+                <div className="input-row">
+                  <input
+                    value={name}
+                    maxLength={MAX_NAME}
+                    onChange={(e) =>
+                      setDraftName(e.target.value.slice(0, MAX_NAME))
+                    }
+                    placeholder="TU NOMBRE"
+                    aria-label="Tu nombre"
+                    disabled={saving}
+                  />
+                  <button
+                    className="btn yellow"
+                    onClick={onSave}
+                    disabled={saving || name.trim() === ""}
+                  >
+                    {saving ? "GUARDANDO…" : "GUARDAR PUNTUACIÓN"}
+                  </button>
+                </div>
+                {saveError && (
+                  <div className="save-error" role="alert">
+                    ▸ ERROR AL GUARDAR: {saveError}
+                  </div>
+                )}
+              </>
             ) : (
               <div className="toast-saved">▸ PUNTUACIÓN GUARDADA_</div>
             )}

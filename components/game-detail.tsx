@@ -1,7 +1,19 @@
 import Link from "next/link";
-import { seededScores, type Game } from "@/lib/data";
-export function GameDetail({ game }: { game: Game }) {
-  const scores = seededScores(game.id.length * 17 + 3, 10);
+import type { Game } from "@/lib/data";
+import type { DbGame, LeaderboardRow } from "@/lib/queries";
+import { formatDate } from "@/lib/format";
+// Etapa híbrida: ficha desde GAMES; ranking y best/plays desde Supabase si existe.
+export function GameDetail({
+  game,
+  dbGame,
+  scores,
+}: {
+  game: Game;
+  dbGame: DbGame | null;
+  scores: LeaderboardRow[];
+}) {
+  const best = dbGame ? dbGame.best : game.best;
+  const plays = dbGame ? dbGame.plays.toLocaleString("es-ES") : game.plays;
   return (
     <div className="av-detail fade-in">
       <div>
@@ -20,7 +32,7 @@ export function GameDetail({ game }: { game: Game }) {
           <div className="stat-strip">
             <div>
               <div className="l">Partidas</div>
-              <div className="v">{game.plays}</div>
+              <div className="v">{plays}</div>
             </div>
             <div>
               <div className="l">Mejor global</div>
@@ -31,7 +43,7 @@ export function GameDetail({ game }: { game: Game }) {
                   textShadow: "0 0 6px rgba(255,0,110,0.5)",
                 }}
               >
-                {game.best.toLocaleString("es-ES")}
+                {best.toLocaleString("es-ES")}
               </div>
             </div>
             <div>
@@ -60,9 +72,16 @@ export function GameDetail({ game }: { game: Game }) {
       <aside>
         <div className="leaderboard">
           <h3>MEJORES PUNTUACIONES</h3>
+          {scores.length === 0 && (
+            <div className="lb-empty compact">
+              <div className="lb-empty-title">
+                SÉ EL PRIMERO EN ENTRAR AL SALÓN DE LA FAMA
+              </div>
+            </div>
+          )}
           {scores.map((r, i) => (
             <div
-              key={r.name}
+              key={`${r.rank}-${r.createdAt}`}
               className={
                 "lb-row" +
                 (i === 0 ? " top1" : i === 1 ? " top2" : i === 2 ? " top3" : "")
@@ -70,7 +89,7 @@ export function GameDetail({ game }: { game: Game }) {
             >
               <div className="rk">#{String(r.rank).padStart(2, "0")}</div>
               <div className="pl">
-                {r.name}
+                {r.playerName}
                 <div
                   style={{
                     fontSize: 10,
@@ -78,7 +97,7 @@ export function GameDetail({ game }: { game: Game }) {
                     letterSpacing: "0.1em",
                   }}
                 >
-                  {r.date}
+                  {formatDate(r.createdAt)}
                 </div>
               </div>
               <div className="sc">{r.score.toLocaleString("es-ES")}</div>
