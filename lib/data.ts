@@ -25,6 +25,17 @@ export const GAMES: Game[] = [
     plays: "0",
   },
   {
+    id: "tetris",
+    title: "TETRIS",
+    short: "Encaja piezas, limpia líneas y aguanta la caída.",
+    long: "Ocho piezas caen sobre un tablero de 10×20, incluida la tuerca, un anillo de 3×3 difícil de encajar. Rótalas, guíate con la pieza fantasma y suelta caídas instantáneas para sumar puntos extra. Cada 10 líneas subes de nivel y las piezas caen más rápido.",
+    cat: "PUZZLE",
+    cover: "cover-tetro",
+    color: "magenta",
+    best: 0,
+    plays: "0",
+  },
+  {
     id: "bloque-buster",
     title: "BLOQUE BUSTER",
     short: "Rebota la pelota y destruye muros de neón.",

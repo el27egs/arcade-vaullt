@@ -921,13 +921,6 @@ a { color: inherit; text-decoration: none; }
 .hall-table .tr .gm { font-family: var(--pixel); font-size: 9px; color: var(--magenta); letter-spacing: 0.08em; }
 .podium-slot.vacant { opacity: 0.45; box-shadow: none; }
 
-/* tabla de juegos */
-.games-table .th, .games-table .tr { grid-template-columns: 1.4fr 1fr 1fr 110px; }
-.games-table .tr { text-decoration: none; color: inherit; cursor: pointer; transition: background 160ms; }
-.games-table .tr:hover { background: rgba(0,245,255,0.05); }
-.games-table .tr:hover .pl:first-child { color: var(--cyan); text-shadow: 0 0 6px rgba(0,245,255,0.5); }
-.games-table .tr .pl:first-child { font-family: var(--pixel); font-size: 11px; letter-spacing: 0.06em; }
-
 /* estado vacío / sin señal de rankings */
 .lb-empty {
   border: 1px dashed var(--line);
@@ -954,7 +947,6 @@ a { color: inherit; text-decoration: none; }
   .hall-table .th, .hall-table .tr { grid-template-columns: 50px 1fr 90px 90px; font-size: 12px; padding: 10px 12px; }
   .hall-table.global .th, .hall-table.global .tr { grid-template-columns: 40px 1fr 80px 80px; }
   .hall-table.global .dt { display: none; }
-  .games-table .th, .games-table .tr { grid-template-columns: 1.3fr 1fr 1fr 60px; }
   .av-grid { padding: 0 16px; }
   .av-hero { padding: 36px 16px 16px; }
   .av-filters { padding: 0 16px; }

@@ -34,6 +34,10 @@ fetching, config, or the compiler.
 
 Usa siempre /frontend-desing para diseñar la interfaz del usuario.
 
+Para agregar un juego nuevo (desde `references/started-games/` o diseñado desde cero) usa
+`/add-game`: genera un único spec con el juego, su fila en `games` y su leaderboard, que luego
+se implementa con `/spec-impl`.
+
 There is no test setup in this repository yet.
 
 ## Architecture

@@ -1,14 +1,8 @@
 "use client";
 import { useEffect, useRef } from "react";
-import {
-  createAsteroidesEngine,
-  type AsteroidesCallbacks,
-  type AsteroidesEngine,
-} from "@/lib/games/asteroides/engine";
-interface Props extends AsteroidesCallbacks {
-  onReady(engine: AsteroidesEngine): void;
-}
-export function AsteroidesCanvas(props: Props) {
+import { createAsteroidesEngine } from "@/lib/games/asteroides/engine";
+import type { GameCanvasProps } from "@/lib/games/types";
+export function AsteroidesCanvas(props: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Callbacks en una ref: un re-render del padre no recrea el motor.
   const propsRef = useRef(props);
@@ -20,8 +14,8 @@ export function AsteroidesCanvas(props: Props) {
     if (!canvas) return;
     const engine = createAsteroidesEngine(canvas, {
       onScore: (s) => propsRef.current.onScore(s),
-      onLives: (l) => propsRef.current.onLives(l),
-      onLevel: (l) => propsRef.current.onLevel(l),
+      onLives: (l) => propsRef.current.onLives?.(l),
+      onLevel: (l) => propsRef.current.onLevel?.(l),
       onGameOver: (s) => propsRef.current.onGameOver(s),
     });
     propsRef.current.onReady(engine);

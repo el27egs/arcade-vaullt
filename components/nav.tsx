@@ -8,8 +8,9 @@ export function Nav() {
   const { user, logout } = useUser();
   const [open, setOpen] = useState(false);
   const isInicio = pathname === "/";
-  const isBiblioteca = pathname === "/biblioteca";
-  const isJuegos = pathname === "/juegos" || pathname.startsWith("/juegos/");
+  // El detalle y el reproductor de un juego se abren desde la biblioteca.
+  const isBiblioteca =
+    pathname === "/biblioteca" || pathname.startsWith("/juegos/");
   const isSalon = pathname === "/salon-de-la-fama";
   const isAbout = pathname === "/acerca-de";
   const isIngresar = pathname === "/ingresar";
@@ -29,9 +30,6 @@ export function Nav() {
           </Link>
           <Link href="/biblioteca" className={isBiblioteca ? "active" : ""}>
             Biblioteca
-          </Link>
-          <Link href="/juegos" className={isJuegos ? "active" : ""}>
-            Juegos
           </Link>
           <Link href="/salon-de-la-fama" className={isSalon ? "active" : ""}>
             Salón de la Fama
@@ -82,13 +80,6 @@ export function Nav() {
           onClick={close}
         >
           Biblioteca
-        </Link>
-        <Link
-          href="/juegos"
-          className={isJuegos ? "active" : ""}
-          onClick={close}
-        >
-          Juegos
         </Link>
         <Link
           href="/salon-de-la-fama"
