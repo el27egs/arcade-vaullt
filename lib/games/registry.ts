@@ -5,6 +5,7 @@ import type { GameCanvasProps, GameHud, GameSkins } from "@/lib/games/types";
 import { AsteroidesCanvas } from "@/components/games/asteroides-canvas";
 import { TetrisCanvas } from "@/components/games/tetris-canvas";
 import { ArkanoidCanvas } from "@/components/games/arkanoid-canvas";
+import { SnakeCanvas } from "@/components/games/snake-canvas";
 export interface GameRegistryEntry {
   Canvas: ComponentType<GameCanvasProps>;
   hud: GameHud;
@@ -33,5 +34,9 @@ export const GAME_REGISTRY: Record<string, GameRegistryEntry> = {
     Canvas: ArkanoidCanvas,
     hud: { lives: true, level: true, lines: false },
     pauseOverlay: "compact",
+  },
+  snake: {
+    Canvas: SnakeCanvas,
+    hud: { lives: false, level: true, lines: false },
   },
 };
