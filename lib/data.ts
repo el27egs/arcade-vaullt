@@ -36,6 +36,17 @@ export const GAMES: Game[] = [
     plays: "0",
   },
   {
+    id: "arkanoid",
+    title: "ARKANOID",
+    short: "Rompe muros de bloques con una pelota y tu paleta.",
+    long: "Guía la paleta con el ratón o las flechas y mantén la pelota en juego para romper los muros de bloques. Cada bloque vale 10 puntos y tienes 3 vidas para superar 5 niveles, con la pelota más rápida en cada uno.",
+    cat: "ARCADE",
+    cover: "cover-bricks",
+    color: "cyan",
+    best: 0,
+    plays: "0",
+  },
+  {
     id: "bloque-buster",
     title: "BLOQUE BUSTER",
     short: "Rebota la pelota y destruye muros de neón.",
