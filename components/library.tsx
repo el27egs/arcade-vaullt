@@ -2,6 +2,9 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CATS, GAMES, type Game } from "@/lib/data";
+import { GAME_REGISTRY } from "@/lib/games/registry";
+// Solo los juegos implementados (con motor en el registro); los mock no se listan.
+const PLAYABLE_GAMES = GAMES.filter((g) => g.id in GAME_REGISTRY);
 function GameCard({
   game,
   onSelect,
@@ -69,7 +72,7 @@ export function Library() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<(typeof CATS)[number]>("TODOS");
   const filtered = useMemo(() => {
-    return GAMES.filter(
+    return PLAYABLE_GAMES.filter(
       (g) =>
         (cat === "TODOS" || g.cat === cat) &&
         g.title.toLowerCase().includes(q.toLowerCase()),

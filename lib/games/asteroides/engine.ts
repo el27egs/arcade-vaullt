@@ -1,6 +1,7 @@
 // ===== lib/games/asteroides/engine.ts — motor canvas de ASTEROIDES =====
 // Port a TypeScript de references/started-games/02-asteroids/game.js.
 // Sin globals: el contexto y el input llegan por parámetro.
+import type { GameCallbacks, GameEngine } from "@/lib/games/types";
 const W = 800;
 const H = 600;
 type Keys = Record<string, boolean>;
@@ -277,21 +278,8 @@ class Particle {
   }
 }
 // ── Contrato con React ────────────────────────────────────────────────────────
-// Juego → React: notificaciones. Solo se invocan cuando el valor cambia.
-export interface AsteroidesCallbacks {
-  onScore(score: number): void;
-  onLives(lives: number): void;
-  onLevel(level: number): void;
-  onGameOver(finalScore: number): void; // por última vida perdida o por end()
-}
-// React → Juego: órdenes. El juego nunca cambia su pausa por iniciativa propia.
-export interface AsteroidesEngine {
-  start(): void; // registra input y arranca el loop rAF
-  setPaused(paused: boolean): void; // única vía para pausar o reanudar
-  end(): void; // FIN manual: congela y dispara onGameOver(score)
-  restart(): void; // score 0, 3 vidas, nivel 1, nueva oleada
-  destroy(): void; // cancela rAF y quita todos los listeners
-}
+// Común a todos los juegos (lib/games/types.ts). restart(): score 0, 3 vidas,
+// nivel 1, nueva oleada.
 const GAME_KEYS = new Set([
   "ArrowLeft",
   "ArrowRight",
@@ -305,8 +293,8 @@ const isTypingTarget = (target: EventTarget | null) =>
   (target instanceof HTMLElement && target.isContentEditable);
 export function createAsteroidesEngine(
   canvas: HTMLCanvasElement,
-  callbacks: AsteroidesCallbacks,
-): AsteroidesEngine {
+  callbacks: GameCallbacks,
+): GameEngine {
   const maybeCtx = canvas.getContext("2d");
   if (!maybeCtx) throw new Error("ASTEROIDES: canvas 2D no disponible");
   const ctx: CanvasRenderingContext2D = maybeCtx;
@@ -403,8 +391,8 @@ export function createAsteroidesEngine(
   }
   function notify() {
     if (score !== sentScore) callbacks.onScore((sentScore = score));
-    if (lives !== sentLives) callbacks.onLives((sentLives = lives));
-    if (level !== sentLevel) callbacks.onLevel((sentLevel = level));
+    if (lives !== sentLives) callbacks.onLives?.((sentLives = lives));
+    if (level !== sentLevel) callbacks.onLevel?.((sentLevel = level));
     if (state === "gameover" && !sentGameOver) {
       sentGameOver = true;
       callbacks.onGameOver(score);

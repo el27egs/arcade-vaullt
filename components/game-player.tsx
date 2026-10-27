@@ -10,8 +10,8 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@/lib/user-context";
 import { saveScore } from "@/app/juegos/[id]/jugar/actions";
 import type { Game } from "@/lib/data";
-import type { AsteroidesEngine } from "@/lib/games/asteroides/engine";
-import { AsteroidesCanvas } from "@/components/games/asteroides-canvas";
+import type { GameEngine } from "@/lib/games/types";
+import { GAME_REGISTRY } from "@/lib/games/registry";
 // Último nombre guardado con éxito, leído como store externo (sin setState en efectos).
 const NAME_KEY = "av_player_name";
 const MAX_NAME = 20;
@@ -37,6 +37,29 @@ function subscribeName(listener: () => void) {
     nameListeners.delete(listener);
   };
 }
+// Skin elegido por juego (localStorage[storageKey]), también como store externo.
+const skinListeners = new Set<() => void>();
+function readStoredSkin(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function writeStoredSkin(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // localStorage unavailable — the skin is just not remembered
+  }
+  skinListeners.forEach((l) => l());
+}
+function subscribeSkin(listener: () => void) {
+  skinListeners.add(listener);
+  return () => {
+    skinListeners.delete(listener);
+  };
+}
 export function GamePlayer({
   game,
   canSave,
@@ -49,6 +72,7 @@ export function GamePlayer({
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
   const [level, setLevel] = useState(1);
+  const [lines, setLines] = useState(0);
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState(false);
   // Prellenado: av_player_name > user.name > vacío; lo que se escribe tiene prioridad.
@@ -80,13 +104,33 @@ export function GamePlayer({
       }
     });
   };
-  // asteroides es un juego real: su motor escribe score/vidas/nivel/over.
-  const isAsteroides = game.id === "asteroides";
-  const engineRef = useRef<AsteroidesEngine | null>(null);
+  // Juego real (con entrada en el registro): su motor escribe score/vidas/nivel/over.
+  const entry = GAME_REGISTRY[game.id];
+  const isReal = entry !== undefined;
+  // Los juegos mock siguen mostrando Vidas y Nivel.
+  const hud = entry?.hud ?? { lives: true, level: true, lines: false };
+  // Skin: el guardado si es válido; si no, el primero de la lista.
+  const skins = entry?.skins;
+  const storedSkin = useSyncExternalStore(
+    subscribeSkin,
+    () => (skins ? readStoredSkin(skins.storageKey) : null),
+    () => null,
+  );
+  const skin =
+    skins?.options.find((o) => o.id === storedSkin) ?? skins?.options[0];
+  const cycleSkin = () => {
+    if (!skins || !skin) return;
+    const i = skins.options.findIndex((o) => o.id === skin.id);
+    writeStoredSkin(
+      skins.storageKey,
+      skins.options[(i + 1) % skins.options.length].id,
+    );
+  };
+  const engineRef = useRef<GameEngine | null>(null);
   // Puntaje del mock, en una ref para que el intervalo decida el nivel sin efectos.
   const mockScoreRef = useRef(0);
   useEffect(() => {
-    if (isAsteroides || over || paused) return;
+    if (isReal || over || paused) return;
     const t = setInterval(() => {
       const next = mockScoreRef.current + Math.floor(10 + Math.random() * 90);
       mockScoreRef.current = next;
@@ -94,13 +138,16 @@ export function GamePlayer({
       if (next % 2500 < 100) setLevel((l) => l + 1);
     }, 220);
     return () => clearInterval(t);
-  }, [isAsteroides, over, paused]);
+  }, [isReal, over, paused]);
   useEffect(() => {
     engineRef.current?.setPaused(paused);
   }, [paused]);
-  // asteroides: P/Escape alternan la pausa; perder foco o visibilidad pausa.
   useEffect(() => {
-    if (!isAsteroides) return;
+    if (skin) engineRef.current?.setSkin?.(skin.id);
+  }, [skin]);
+  // Juego real: P/Escape alternan la pausa; perder foco o visibilidad pausa.
+  useEffect(() => {
+    if (!isReal) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code !== "KeyP" && e.code !== "Escape") return;
       if (e.repeat || over) return;
@@ -122,9 +169,9 @@ export function GamePlayer({
       window.removeEventListener("blur", pause);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [isAsteroides, over]);
+  }, [isReal, over]);
   const endGame = () => {
-    if (isAsteroides) engineRef.current?.end();
+    if (isReal) engineRef.current?.end();
     else setOver(true);
   };
   const restart = () => {
@@ -133,6 +180,7 @@ export function GamePlayer({
     setScore(0);
     setLives(3);
     setLevel(1);
+    setLines(0);
     setPaused(false);
     setOver(false);
     setSaved(false);
@@ -152,16 +200,38 @@ export function GamePlayer({
             <div className="l">Puntuación</div>
             <div className="v">{score.toLocaleString("es-ES")}</div>
           </div>
-          <div className="hud-stat lives">
-            <div className="l">Vidas</div>
-            <div className="v">{"♥ ".repeat(lives).trim() || "—"}</div>
-          </div>
-          <div className="hud-stat level">
-            <div className="l">Nivel</div>
-            <div className="v">{String(level).padStart(2, "0")}</div>
-          </div>
+          {hud.lives && (
+            <div className="hud-stat lives">
+              <div className="l">Vidas</div>
+              <div className="v">{"♥ ".repeat(lives).trim() || "—"}</div>
+            </div>
+          )}
+          {hud.lines && (
+            <div className="hud-stat">
+              <div className="l">Líneas</div>
+              <div className="v">{lines.toLocaleString("es-ES")}</div>
+            </div>
+          )}
+          {hud.level && (
+            <div className="hud-stat level">
+              <div className="l">Nivel</div>
+              <div className="v">{String(level).padStart(2, "0")}</div>
+            </div>
+          )}
         </div>
         <div className="hud-actions">
+          {skin && (
+            <button
+              className="btn"
+              onClick={(e) => {
+                cycleSkin();
+                // Sin foco: Espacio no debe volver a pulsar el botón.
+                e.currentTarget.blur();
+              }}
+            >
+              TEMA: {skin.label}
+            </button>
+          )}
           <button className="btn yellow" onClick={() => setPaused((p) => !p)}>
             {paused ? "REANUDAR" : "PAUSA"}
           </button>
@@ -178,15 +248,17 @@ export function GamePlayer({
       </div>
       <div className="crt">
         <div className="crt-screen">
-          {isAsteroides ? (
-            <AsteroidesCanvas
+          {entry ? (
+            <entry.Canvas
               onReady={(engine) => {
                 engineRef.current = engine;
                 engine.setPaused(paused);
+                if (skin) engine.setSkin?.(skin.id);
               }}
               onScore={setScore}
               onLives={setLives}
               onLevel={setLevel}
+              onLines={setLines}
               onGameOver={(finalScore) => {
                 setScore(finalScore);
                 setOver(true);
