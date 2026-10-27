@@ -4,10 +4,13 @@ import type { ComponentType } from "react";
 import type { GameCanvasProps, GameHud, GameSkins } from "@/lib/games/types";
 import { AsteroidesCanvas } from "@/components/games/asteroides-canvas";
 import { TetrisCanvas } from "@/components/games/tetris-canvas";
+import { ArkanoidCanvas } from "@/components/games/arkanoid-canvas";
 export interface GameRegistryEntry {
   Canvas: ComponentType<GameCanvasProps>;
   hud: GameHud;
   skins?: GameSkins;
+  // "compact": franja EN PAUSA arriba que deja pasar los clics al canvas.
+  pauseOverlay?: "full" | "compact"; // sin valor = "full"
 }
 export const GAME_REGISTRY: Record<string, GameRegistryEntry> = {
   asteroides: {
@@ -25,5 +28,10 @@ export const GAME_REGISTRY: Record<string, GameRegistryEntry> = {
         { id: "neon", label: "NEÓN" },
       ],
     },
+  },
+  arkanoid: {
+    Canvas: ArkanoidCanvas,
+    hud: { lives: true, level: true, lines: false },
+    pauseOverlay: "compact",
   },
 };

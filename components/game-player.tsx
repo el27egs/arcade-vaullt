@@ -273,7 +273,39 @@ export function GamePlayer({
               <div className="player-ship"></div>
             </div>
           )}
-          {paused && (
+          {paused && entry?.pauseOverlay === "compact" && (
+            // Franja arriba sin velo: los clics llegan al canvas (selector de nivel).
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                zIndex: 5,
+                pointerEvents: "none",
+                padding: "18px 16px 22px",
+                textAlign: "center",
+                background:
+                  "linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.55) 70%, transparent)",
+              }}
+            >
+              <div className="pixel neon-yellow" style={{ fontSize: 22 }}>
+                EN PAUSA
+              </div>
+              <div
+                className="mono"
+                style={{
+                  fontSize: 11,
+                  color: "var(--ink-dim)",
+                  marginTop: 10,
+                  letterSpacing: "0.16em",
+                }}
+              >
+                PULSA REANUDAR PARA CONTINUAR
+              </div>
+            </div>
+          )}
+          {paused && entry?.pauseOverlay !== "compact" && (
             <div
               className="crt-content"
               style={{ background: "rgba(0,0,0,0.6)", zIndex: 5 }}
