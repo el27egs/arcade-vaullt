@@ -23,13 +23,15 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 2 http://localhost:3000/)",
       "mcp__playwright__browser_evaluate",
       "Bash(pkill -f \"http.server 8899\")",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 2 http://localhost:8899/)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 2 http://localhost:8899/)",
+      "Bash(git check-ignore *)",
+      "Skill(spec-impl)"
     ]
-  },
-  "skillOverrides": {
-    "team-chat-writer": "off"
   },
   "enabledMcpjsonServers": [
     "supabase"
-  ]
+  ],
+  "skillOverrides": {
+    "team-chat-writer": "off"
+  }
 }

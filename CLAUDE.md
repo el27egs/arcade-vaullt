@@ -53,16 +53,23 @@ Para agregar un juego nuevo (desde `references/started-games/` o diseñado desde
 `/add-game`: genera un único spec con el juego, su fila en `games` y su leaderboard, que luego
 se implementa con `/spec-impl`.
 
+Para decidir qué juego agregar a continuación usa el subagente `game-planner`
+(`.claude/agents/game-planner.md`): analiza el catálogo, propone juegos originales y lleva la
+memoria de sugerencias en `references/game-suggestions-todo.md`. Su salida alimenta `/add-game`.
+
 - `spec` / `spec-impl` live in `.agents/skills/` (symlinked from `.claude/skills/`),
   pinned in `skills-lock.json`.
 - `add-game` lives in `.claude/skills/add-game/` (`SKILL.md` + `integration.md` with the
   integration checklist). It only writes the spec; it never implements.
+- `game-planner` is a project subagent in `.claude/agents/game-planner.md`. Its only writable
+  file is its memory, `references/game-suggestions-todo.md` (Pendientes / Implementadas /
+  Descartadas); it never deletes entries so ideas are not repeated.
 
 ## Routes (`app/`)
 
 - `/` — home; recent scores + global top 5 (degrades to "SIN SEÑAL" if Supabase fails).
 - `/biblioteca` — game library. (see `references/implemented-games.md`) when you need to check
-   which games are implemented and how to implement new ones.
+  which games are implemented and how to implement new ones.
 - `/juegos/[id]` — game detail + per-game leaderboard.
 - `/juegos/[id]/jugar` — `GamePlayer`; saves scores via the `saveScore` server action
   (`app/juegos/[id]/jugar/actions.ts`).
