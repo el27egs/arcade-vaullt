@@ -57,6 +57,11 @@ Para decidir qué juego agregar a continuación usa el subagente `game-planner`
 (`.claude/agents/game-planner.md`): analiza el catálogo, propone juegos originales y lleva la
 memoria de sugerencias en `references/game-suggestions-todo.md`. Su salida alimenta `/add-game`.
 
+Para una game jam usa el subagente `game-jam` (`.claude/agents/game-jam.md`): recibe un tema (y
+opcionalmente cuántos juegos, uno por defecto), diseña sin preguntar un juego original por cada
+uno y escribe al menos dos specs por juego en `specs/game-jam/<game-id>/`
+(`01-<id>-juego.md` y `02-<id>-leaderboard.md`), que luego se implementan en orden con `/spec-impl`.
+
 - `spec` / `spec-impl` live in `.agents/skills/` (symlinked from `.claude/skills/`),
   pinned in `skills-lock.json`.
 - `add-game` lives in `.claude/skills/add-game/` (`SKILL.md` + `integration.md` with the
@@ -64,6 +69,9 @@ memoria de sugerencias en `references/game-suggestions-todo.md`. Su salida alime
 - `game-planner` is a project subagent in `.claude/agents/game-planner.md`. Its only writable
   file is its memory, `references/game-suggestions-todo.md` (Pendientes / Implementadas /
   Descartadas); it never deletes entries so ideas are not repeated.
+- `game-jam` is a project subagent in `.claude/agents/game-jam.md`. It only writes inside
+  `specs/game-jam/<game-id>/`, never implements, asks no questions (records its choices in each
+  spec's Decisions) and ignores the `game-planner` memory.
 
 ## Routes (`app/`)
 
