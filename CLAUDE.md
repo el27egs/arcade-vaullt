@@ -62,6 +62,11 @@ opcionalmente cuántos juegos, uno por defecto), diseña sin preguntar un juego 
 uno y escribe al menos dos specs por juego en `specs/game-jam/<game-id>/`
 (`01-<id>-juego.md` y `02-<id>-leaderboard.md`), que luego se implementan en orden con `/spec-impl`.
 
+Para los temas visuales usa el subagente `skin-designer` (`.claude/agents/skin-designer.md`):
+recibe **un** id de juego, verifica que tenga los skins `clasico` (default), `retro` y `neon`,
+legibles en modo oscuro, e implementa los que falten. La referencia de qué juegos ya cumplen está
+en `references/game-with-themes.md`.
+
 - `spec` / `spec-impl` live in `.agents/skills/` (symlinked from `.claude/skills/`),
   pinned in `skills-lock.json`.
 - `add-game` lives in `.claude/skills/add-game/` (`SKILL.md` + `integration.md` with the
@@ -72,6 +77,10 @@ uno y escribe al menos dos specs por juego en `specs/game-jam/<game-id>/`
 - `game-jam` is a project subagent in `.claude/agents/game-jam.md`. It only writes inside
   `specs/game-jam/<game-id>/`, never implements, asks no questions (records its choices in each
   spec's Decisions) and ignores the `game-planner` memory.
+- `skin-designer` is a project subagent in `.claude/agents/skin-designer.md`. It works on one game
+  per run, implements skins in that game's engine + its `GAME_REGISTRY` entry (via
+  `standardSkins()` in `lib/games/skins.ts`), runs lint/build, and updates only that game's row in
+  `references/game-with-themes.md`. It never changes gameplay.
 
 ## Routes (`app/`)
 

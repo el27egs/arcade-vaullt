@@ -33,6 +33,10 @@ esta lista refleja el repo al crearse la skill.
 - Los HUD o paneles que el original pinta en HTML se dibujan en el canvas o se pasan al HUD React.
 - Assets en `public/games/<id>/`, cargados por el motor y liberados (o ignorados) en `destroy()`.
   Sonido solo si el spec lo mete en alcance.
+- **Skins estándar**: el juego ofrece `clasico` (default), `retro` y `neon`, los tres legibles en
+  modo oscuro, con `setSkin` en el motor y `skins: standardSkins("<id>")` en el registro. Tras
+  implementarlo, ejecuta el subagente `skin-designer` sobre el juego para verificarlo y
+  registrarlo en `references/game-with-themes.md`.
 
 ## 3. Contrato común y registro genérico
 
