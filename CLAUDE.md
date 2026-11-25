@@ -53,16 +53,40 @@ Para agregar un juego nuevo (desde `references/started-games/` o diseñado desde
 `/add-game`: genera un único spec con el juego, su fila en `games` y su leaderboard, que luego
 se implementa con `/spec-impl`.
 
+Para decidir qué juego agregar a continuación usa el subagente `game-planner`
+(`.claude/agents/game-planner.md`): analiza el catálogo, propone juegos originales y lleva la
+memoria de sugerencias en `references/game-suggestions-todo.md`. Su salida alimenta `/add-game`.
+
+Para una game jam usa el subagente `game-jam` (`.claude/agents/game-jam.md`): recibe un tema (y
+opcionalmente cuántos juegos, uno por defecto), diseña sin preguntar un juego original por cada
+uno y escribe al menos dos specs por juego en `specs/game-jam/<game-id>/`
+(`01-<id>-juego.md` y `02-<id>-leaderboard.md`), que luego se implementan en orden con `/spec-impl`.
+
+Para los temas visuales usa el subagente `skin-designer` (`.claude/agents/skin-designer.md`):
+recibe **un** id de juego, verifica que tenga los skins `clasico` (default), `retro` y `neon`,
+legibles en modo oscuro, e implementa los que falten. La referencia de qué juegos ya cumplen está
+en `references/game-with-themes.md`.
+
 - `spec` / `spec-impl` live in `.agents/skills/` (symlinked from `.claude/skills/`),
   pinned in `skills-lock.json`.
 - `add-game` lives in `.claude/skills/add-game/` (`SKILL.md` + `integration.md` with the
   integration checklist). It only writes the spec; it never implements.
+- `game-planner` is a project subagent in `.claude/agents/game-planner.md`. Its only writable
+  file is its memory, `references/game-suggestions-todo.md` (Pendientes / Implementadas /
+  Descartadas); it never deletes entries so ideas are not repeated.
+- `game-jam` is a project subagent in `.claude/agents/game-jam.md`. It only writes inside
+  `specs/game-jam/<game-id>/`, never implements, asks no questions (records its choices in each
+  spec's Decisions) and ignores the `game-planner` memory.
+- `skin-designer` is a project subagent in `.claude/agents/skin-designer.md`. It works on one game
+  per run, implements skins in that game's engine + its `GAME_REGISTRY` entry (via
+  `standardSkins()` in `lib/games/skins.ts`), runs lint/build, and updates only that game's row in
+  `references/game-with-themes.md`. It never changes gameplay.
 
 ## Routes (`app/`)
 
 - `/` — home; recent scores + global top 5 (degrades to "SIN SEÑAL" if Supabase fails).
 - `/biblioteca` — game library. (see `references/implemented-games.md`) when you need to check
-   which games are implemented and how to implement new ones.
+  which games are implemented and how to implement new ones.
 - `/juegos/[id]` — game detail + per-game leaderboard.
 - `/juegos/[id]/jugar` — `GamePlayer`; saves scores via the `saveScore` server action
   (`app/juegos/[id]/jugar/actions.ts`).
