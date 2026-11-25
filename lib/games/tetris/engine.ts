@@ -2,6 +2,7 @@
 // Port a TypeScript de references/started-games/03-tetris/game.js.
 // Sin globals: el tablero y el contexto llegan por parámetro.
 import type { GameCallbacks, GameEngine } from "@/lib/games/types";
+import type { StandardSkinId } from "@/lib/games/skins";
 // ── Constantes ────────────────────────────────────────────────────────────────
 const W = 800;
 const H = 600;
@@ -68,16 +69,19 @@ const PIECES: (number[][] | null)[] = [
 const LINE_SCORES = [0, 100, 300, 500, 800];
 const KICKS = [0, -1, 1, -2, 2];
 // ── Skins ─────────────────────────────────────────────────────────────────────
-// dark y light son los temas del original (style.css); neon usa la paleta de
-// Arcade Vault. El skin activo lo elige React con setSkin.
-export type TetrisSkinId = "dark" | "light" | "neon";
+// clasico es el tema oscuro del original (antes "dark"); retro imita un monitor
+// de fósforo verde; neon usa la paleta de Arcade Vault. light (CLARO) es el
+// tema claro del original, conservado como skin extra. Lo elige React con setSkin.
+export type TetrisSkinId = StandardSkinId | "light";
 interface Skin {
   colors: (string | null)[];
   glow: boolean; // halo de neón en los bloques
+  scanlines: boolean; // líneas de barrido CRT sobre todo el canvas
   bg: string;
   canvasBg: string;
   border: string;
   gridLine: string;
+  blockHighlight: string | null; // brillo superior de cada bloque (null = plano)
   label: string;
   value: string;
   overTitle: string;
@@ -86,16 +90,19 @@ interface Skin {
   kbdBorder: string;
   kbdText: string;
   overlayBg: string;
+  scanline: string;
 }
 const SKINS: Record<TetrisSkinId, Skin> = {
-  dark: {
+  clasico: {
     colors: ORIGINAL_COLORS,
     glow: false,
+    scanlines: false,
     bg: "#0f0f17",
     canvasBg: "#1a1a25",
     border: "#2a2a3a",
     gridLine: "#22222e",
-    label: "#555570",
+    blockHighlight: "rgba(255,255,255,0.12)",
+    label: "#7e7ea0", // original #555570, aclarado para contraste ≥ 4.5:1
     value: "#7aa2f7",
     overTitle: "#e57373",
     controlsText: "#888",
@@ -103,22 +110,37 @@ const SKINS: Record<TetrisSkinId, Skin> = {
     kbdBorder: "#3a3a5a",
     kbdText: "#aaa",
     overlayBg: "rgba(10, 10, 20, 0.75)",
+    scanline: "rgba(0, 0, 0, 0)",
   },
-  light: {
-    colors: ORIGINAL_COLORS,
+  retro: {
+    // Fósforo verde: cuatro tonos, bloques planos, sin halo.
+    colors: [
+      null,
+      "#33ff33", // I
+      "#99ff99", // O
+      "#1fbf1f", // T
+      "#66cc66", // S
+      "#33ff33", // Z
+      "#99ff99", // J
+      "#1fbf1f", // L
+      "#66cc66", // N
+    ],
     glow: false,
-    bg: "#f0f0f8",
-    canvasBg: "#e4e4f0",
-    border: "#b0b0c8",
-    gridLine: "#c8c8dc",
-    label: "#6060a0",
-    value: "#7aa2f7",
-    overTitle: "#e57373",
-    controlsText: "#404060",
-    kbdBg: "#dcdcf0",
-    kbdBorder: "#9090b8",
-    kbdText: "#3a3a6a",
-    overlayBg: "rgba(210, 210, 230, 0.85)",
+    scanlines: true,
+    bg: "#020a02",
+    canvasBg: "#041204",
+    border: "#1f7a1f",
+    gridLine: "#0a240a",
+    blockHighlight: null,
+    label: "#33cc33",
+    value: "#66ff66",
+    overTitle: "#99ff99",
+    controlsText: "#33cc33",
+    kbdBg: "#062006",
+    kbdBorder: "#1f7a1f",
+    kbdText: "#66ff66",
+    overlayBg: "rgba(0, 8, 0, 0.85)",
+    scanline: "rgba(0, 0, 0, 0.22)",
   },
   neon: {
     colors: [
@@ -133,10 +155,12 @@ const SKINS: Record<TetrisSkinId, Skin> = {
       "#c0c0d8", // N
     ],
     glow: true,
+    scanlines: false,
     bg: "#0a0a18",
     canvasBg: "#0d0d22",
     border: "#00f5ff",
     gridLine: "#1a1a3a",
+    blockHighlight: "rgba(255,255,255,0.12)",
     label: "#ff006e",
     value: "#00f5ff",
     overTitle: "#ff006e",
@@ -145,6 +169,26 @@ const SKINS: Record<TetrisSkinId, Skin> = {
     kbdBorder: "#00f5ff",
     kbdText: "#00f5ff",
     overlayBg: "rgba(5, 5, 20, 0.8)",
+    scanline: "rgba(0, 0, 0, 0)",
+  },
+  light: {
+    colors: ORIGINAL_COLORS,
+    glow: false,
+    scanlines: false,
+    bg: "#f0f0f8",
+    canvasBg: "#e4e4f0",
+    border: "#b0b0c8",
+    gridLine: "#c8c8dc",
+    blockHighlight: "rgba(255,255,255,0.12)",
+    label: "#6060a0",
+    value: "#7aa2f7",
+    overTitle: "#e57373",
+    controlsText: "#404060",
+    kbdBg: "#dcdcf0",
+    kbdBorder: "#9090b8",
+    kbdText: "#3a3a6a",
+    overlayBg: "rgba(210, 210, 230, 0.85)",
+    scanline: "rgba(0, 0, 0, 0)",
   },
 };
 export const isTetrisSkin = (id: string): id is TetrisSkinId => id in SKINS;
@@ -253,8 +297,10 @@ function drawBlock(
   ctx.fillRect(ox + x * size + 1, oy + y * size + 1, size - 2, size - 2);
   ctx.shadowBlur = 0;
   // highlight
-  ctx.fillStyle = "rgba(255,255,255,0.12)";
-  ctx.fillRect(ox + x * size + 1, oy + y * size + 1, size - 2, 4);
+  if (skin.blockHighlight) {
+    ctx.fillStyle = skin.blockHighlight;
+    ctx.fillRect(ox + x * size + 1, oy + y * size + 1, size - 2, 4);
+  }
   ctx.globalAlpha = 1;
 }
 // ── Contrato con React ────────────────────────────────────────────────────────
@@ -289,7 +335,7 @@ export function createTetrisEngine(
   let dropAccum: number; // ms
   let state: "playing" | "gameover";
   let paused = false; // solo lo escribe setPaused
-  let skin: Skin = SKINS.dark; // solo lo escribe setSkin
+  let skin: Skin = SKINS.clasico; // solo lo escribe setSkin
   // Últimos valores notificados a React (para avisar solo-al-cambiar)
   let sentScore: number | null = null;
   let sentLines: number | null = null;
@@ -542,6 +588,11 @@ export function createTetrisEngine(
       H / 2 + 22,
     );
   }
+  // Líneas de barrido CRT (skin retro): una fila oscura cada 3 px.
+  function drawScanlines() {
+    ctx.fillStyle = skin.scanline;
+    for (let y = 0; y < H; y += 3) ctx.fillRect(0, y, W, 1);
+  }
   function draw() {
     ctx.fillStyle = skin.bg;
     ctx.fillRect(0, 0, W, H);
@@ -549,6 +600,7 @@ export function createTetrisEngine(
     drawStatsPanel();
     drawControlsPanel();
     if (state === "gameover") drawGameOver();
+    if (skin.scanlines) drawScanlines();
   }
   // ── Loop principal ──────────────────────────────────────────────────────────
   let lastTime: number | null = null;

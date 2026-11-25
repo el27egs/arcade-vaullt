@@ -6,6 +6,7 @@ import { AsteroidesCanvas } from "@/components/games/asteroides-canvas";
 import { TetrisCanvas } from "@/components/games/tetris-canvas";
 import { ArkanoidCanvas } from "@/components/games/arkanoid-canvas";
 import { SnakeCanvas } from "@/components/games/snake-canvas";
+import { standardSkins } from "@/lib/games/skins";
 export interface GameRegistryEntry {
   Canvas: ComponentType<GameCanvasProps>;
   hud: GameHud;
@@ -17,26 +18,22 @@ export const GAME_REGISTRY: Record<string, GameRegistryEntry> = {
   asteroides: {
     Canvas: AsteroidesCanvas,
     hud: { lives: true, level: true, lines: false },
+    skins: standardSkins("asteroides"),
   },
   tetris: {
     Canvas: TetrisCanvas,
     hud: { lives: false, level: true, lines: true },
-    skins: {
-      storageKey: "tetris-theme",
-      options: [
-        { id: "dark", label: "OSCURO" },
-        { id: "light", label: "CLARO" },
-        { id: "neon", label: "NEÓN" },
-      ],
-    },
+    skins: standardSkins("tetris", [{ id: "light", label: "CLARO" }]),
   },
   arkanoid: {
     Canvas: ArkanoidCanvas,
     hud: { lives: true, level: true, lines: false },
+    skins: standardSkins("arkanoid"),
     pauseOverlay: "compact",
   },
   snake: {
     Canvas: SnakeCanvas,
     hud: { lives: false, level: true, lines: false },
+    skins: standardSkins("snake"),
   },
 };
