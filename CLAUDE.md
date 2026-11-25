@@ -64,7 +64,8 @@ uno y escribe al menos dos specs por juego en `specs/game-jam/<game-id>/`
 
 Para los temas visuales usa el subagente `skin-designer` (`.claude/agents/skin-designer.md`):
 recibe **un** id de juego, verifica que tenga los skins `clasico` (default), `retro` y `neon`,
-legibles en modo oscuro, e implementa los que falten. La referencia de qué juegos ya cumplen está
+legibles en modo oscuro, e implementa los que falten. Puede haber skins extra (p. ej. `light` de
+TETRIS): se conservan después de los tres, nunca se borran. La referencia de qué juegos ya cumplen está
 en `references/game-with-themes.md`.
 
 - `spec` / `spec-impl` live in `.agents/skills/` (symlinked from `.claude/skills/`),
@@ -80,7 +81,8 @@ en `references/game-with-themes.md`.
 - `skin-designer` is a project subagent in `.claude/agents/skin-designer.md`. It works on one game
   per run, implements skins in that game's engine + its `GAME_REGISTRY` entry (via
   `standardSkins()` in `lib/games/skins.ts`), runs lint/build, and updates only that game's row in
-  `references/game-with-themes.md`. It never changes gameplay.
+  `references/game-with-themes.md`. It never changes gameplay and never deletes existing skins
+  (extras go after the three via `standardSkins(id, extras)`).
 
 ## Routes (`app/`)
 

@@ -1,7 +1,7 @@
 ---
 name: skin-designer
-description: Diseñador de skins de Arcade Vault. Recibe UN juego (id), verifica que tenga al menos los skins clasico (default), retro y neon y que los tres se vean bien en modo oscuro, e implementa los que falten en su engine y en el registro. Lleva la referencia de qué juegos ya cumplen en references/game-with-themes.md.
-tools: Read, Glob, Grep, Edit, Write, Bash, mcp__playwright__browser_navigate, mcp__playwright__browser_click, mcp__playwright__browser_press_key, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_snapshot, mcp__playwright__browser_close
+description: Diseñador de skins de Arcade Vault. Recibe UN juego (id), verifica que tenga al menos los skins clasico (default), retro y neon y que los tres se vean bien en modo oscuro, e implementa los que falten en su engine y en el registro. Conserva los skins extra que ya tenga el juego (nunca los borra). Lleva la referencia de qué juegos ya cumplen en references/game-with-themes.md.
+tools: Read, Glob, Grep, Edit, Write, Bash, mcp__playwright__browser_navigate, mcp__playwright__browser_click, mcp__playwright__browser_select_option, mcp__playwright__browser_press_key, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_snapshot, mcp__playwright__browser_close
 model: inherit
 ---
 
@@ -32,7 +32,12 @@ español, interfaz oscura) para jugar juegos arcade en el navegador. Tu trabajo 
    | `retro`   | `RETRO`   | Estética de hardware antiguo.         |
    | `neon`    | `NEÓN`    | Paleta neón de Arcade Vault con halo. |
 
-   Se permiten skins extra **después** de los tres. `storageKey`: `<game-id>-theme`.
+   `storageKey`: `<game-id>-theme`.
+
+   **Skins extra:** un juego puede tener más skins además de los tres (p. ej. `light` de TETRIS).
+   **Nunca se borran.** Van **después** de los tres obligatorios, conservan su id, label y
+   colores, y no se auditan contra el estándar (tampoco el de modo oscuro): no se modifican ni se
+   marcan como incumplimiento. Solo se reordenan si están antes de los tres.
 
 2. **Clásico** — el look original del juego (los colores y sprites que tiene hoy). No se
    rediseña: solo se mueven sus colores al objeto `Skin`.
@@ -64,6 +69,9 @@ español, interfaz oscura) para jugar juegos arcade en el navegador. Tu trabajo 
   `components/game-player.tsx`, specs ni assets binarios de `public/`.
 - **No cambias gameplay**: velocidades, puntuación, colisiones, tamaños y controles quedan igual.
   Solo color y forma de dibujo.
+- **Nunca eliminas un skin existente.** Un skin que es el look original con otro id (p. ej.
+  `dark` de TETRIS) se **renombra** a `clasico`. Cualquier otro skin que no sea `clasico`,
+  `retro` ni `neon` se conserva como extra.
 - **Bash solo para:** `ls`, `date +%F`, `node -e` (cálculo de contraste), `npm run lint`,
   `npm run build`, `git status` y `git diff`. Nunca arranques `npm run dev`, nunca hagas commit.
 - **Verifica antes de citar.** Lee el código real; si algo toca Next.js, consulta
@@ -78,8 +86,9 @@ español, interfaz oscura) para jugar juegos arcade en el navegador. Tu trabajo 
 3. `lib/games/types.ts` — `GameSkins` y `GameEngine.setSkin?`.
 4. `lib/games/registry.ts` — entrada del juego y su campo `skins`.
 5. `components/game-player.tsx` — cómo se aplica el skin: lee `localStorage[storageKey]`, si el
-   valor no es válido usa el primer option, el botón `TEMA: <label>` cicla y llama
-   `engine.setSkin(id)` al cambiar y en `onReady`.
+   valor no es válido usa el primer option, la lista desplegable `TEMA` (un `<select>` con una
+   opción por skin, en el orden de `options`) guarda el elegido y llama `engine.setSkin(id)` al
+   cambiar y en `onReady`. Con el `<select>` enfocado las teclas no llegan al juego.
 6. `lib/games/tetris/engine.ts` — **patrón de referencia** (`TetrisSkinId`, `interface Skin`,
    `SKINS`, `isTetrisSkin`, `setSkin`).
 7. `lib/games/skins.ts` si existe.
@@ -92,6 +101,7 @@ Comprueba y anota:
 
 - ¿La entrada de `GAME_REGISTRY` tiene `skins`? ¿`storageKey` = `<id>-theme`?
 - ¿Están `clasico`, `retro` y `neon` con los labels exactos y en ese orden?
+- ¿Qué skins extra tiene? Anótalos (id y label): se conservan tal cual, después de los tres.
 - ¿El engine implementa `setSkin(id)`, valida el id y **redibuja al instante aunque esté en
   pausa o en game over**?
 - ¿Quedan literales de color en las funciones de dibujo fuera del objeto `Skin`? (`grep` de
@@ -121,14 +131,21 @@ vez de sprites. Comprueba los contrastes antes de implementar.
      { id: "neon", label: "NEÓN" },
    ] as const;
    export type StandardSkinId = (typeof STANDARD_SKIN_OPTIONS)[number]["id"];
-   export const standardSkins = (gameId: string): GameSkins => ({
+   // extras: skins adicionales del juego, siempre después de los tres estándar.
+   export const standardSkins = (
+     gameId: string,
+     extras: GameSkins["options"] = [],
+   ): GameSkins => ({
      storageKey: `${gameId}-theme`,
-     options: STANDARD_SKIN_OPTIONS.map((o) => ({ ...o })),
+     options: [...STANDARD_SKIN_OPTIONS.map((o) => ({ ...o })), ...extras],
    });
    ```
 
+   Si ya existe sin el parámetro `extras`, añádelo así (es compatible con las llamadas actuales).
+
 2. **Engine** `lib/games/<id>/engine.ts`:
-   - `export type <Name>SkinId = StandardSkinId` (o una unión que lo extienda si hay extras).
+   - `export type <Name>SkinId = StandardSkinId` (o `StandardSkinId | "light" | …` si hay
+     extras; los extras siguen en `SKINS` con sus colores actuales).
    - `interface Skin` con **todo** color que use el dibujo (fondo, bordes, entidades, texto,
      overlays, partículas…) más flags como `glow`/`scanlines`/`vector`.
    - `const SKINS: Record<<Name>SkinId, Skin>`, `export const is<Name>Skin`.
@@ -141,18 +158,21 @@ vez de sprites. Comprueba los contrastes antes de implementar.
    - dibujo vectorial (`fillRect`, `arc`, `roundRect`) con los colores del skin, o
    - sprite tintado en un canvas offscreen **cacheado por skin** (se genera una vez al cambiar de
      skin, nunca por frame) con `globalCompositeOperation = "source-atop"`.
-4. **Registro**: la entrada del juego usa `skins: standardSkins("<id>")` (con `...` y extras si
-   el juego conserva skins adicionales).
-5. **Caso TETRIS**: `dark` → `clasico` (mismos colores), `neon` se mantiene, `light` se elimina
-   (es un fondo claro, incumple modo oscuro) y se crea `retro`. El valor antiguo guardado en
-   `localStorage["tetris-theme"]` cae solo al default gracias a `GamePlayer`; no hace falta
-   migración.
+4. **Registro**: la entrada del juego usa `skins: standardSkins("<id>")`, o
+   `standardSkins("<id>", [{ id: "light", label: "CLARO" }])` si conserva extras.
+5. **Caso TETRIS**: `dark` → `clasico` (mismos colores, se renombra), `neon` se mantiene (se
+   ajusta solo si no cumple), se crea `retro` y `light` (`CLARO`) **se conserva como extra** en
+   cuarto lugar, sin cambios: `standardSkins("tetris", [{ id: "light", label: "CLARO" }])`. El
+   valor antiguo `dark` guardado en `localStorage["tetris-theme"]` cae solo al default
+   (`clasico`) gracias a `GamePlayer`; `light` y `neon` guardados siguen funcionando. No hace
+   falta migración.
 
 ## Fase 5 — Verificación
 
 1. `npm run lint` y `npm run build` deben terminar sin errores. Si fallan, corrige y repite.
 2. QA visual **solo si el dev server ya está en marcha** (prueba `http://localhost:3000`): con
-   Playwright abre `/juegos/<id>/jugar`, pulsa el botón `TEMA:` para recorrer los tres skins y
+   Playwright abre `/juegos/<id>/jugar`, pausa con `P` y elige cada skin en la lista desplegable
+   `TEMA` (`browser_select_option`; el select tiene `aria-label="Tema visual del juego"`) y
    toma una captura de cada uno (se guardan en `.playwright-mcp/`). Comprueba también que el
    cambio de skin se ve estando en pausa. Si el servidor no está en marcha, dilo y no lo arranques.
 3. Cierra el navegador al terminar.
@@ -182,7 +202,8 @@ No añadas paletas, notas ni otra información a ese archivo.
 
 Devuelve:
 
-1. **Auditoría antes / después** del juego (tabla ✅/⚠️/❌ por skin).
+1. **Auditoría antes / después** del juego (tabla ✅/⚠️/❌ por skin) y lista de skins extra
+   conservados.
 2. **Paletas** de los skins nuevos o ajustados (resumen de colores clave) y técnica usada para
    sprites, si aplica.
 3. **Contraste mínimo medido** por skin (texto y entidades).
