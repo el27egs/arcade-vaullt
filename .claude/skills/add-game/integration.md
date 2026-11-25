@@ -36,7 +36,8 @@ esta lista refleja el repo al crearse la skill.
 - **Skins estándar**: el juego ofrece `clasico` (default), `retro` y `neon`, los tres legibles en
   modo oscuro, con `setSkin` en el motor y `skins: standardSkins("<id>")` en el registro. Tras
   implementarlo, ejecuta el subagente `skin-designer` sobre el juego para verificarlo y
-  registrarlo en `references/game-with-themes.md`.
+  registrarlo en `references/game-with-themes.md`. El jugador elige el skin en la lista
+  desplegable `TEMA` del HUD de `GamePlayer`; el juego no añade controles propios de tema.
 
 ## 3. Contrato común y registro genérico
 
@@ -90,7 +91,7 @@ Si el registro **ya existe**, el spec solo añade la entrada del juego.
 ## 4. GamePlayer
 
 - Pausa siempre vía su estado `paused`, sincronizado con `engine.setPaused`:
-  botón PAUSA/REANUDAR, `P` y `Escape` (ignorados con el modal abierto o el foco en un `input`),
+  botón PAUSA/REANUDAR, `P` y `Escape` (ignorados con el modal abierto o el foco en un `input` o `select`),
   y `blur`/`visibilitychange` ponen `paused = true` sin reanudar solos.
 - FIN → `engine.end()` → `onGameOver(score)` abre el modal.
 - JUGAR DE NUEVO → `engine.restart()`, cierra el modal, `paused = false`.

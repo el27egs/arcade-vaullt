@@ -2,6 +2,7 @@
 // Port a TypeScript de references/started-games/04-arkanoid/game.js.
 // Sin globals: el canvas, la imagen y los sonidos son de cada instancia.
 import type { GameCallbacks, GameEngine } from "@/lib/games/types";
+import type { StandardSkinId } from "@/lib/games/skins";
 import { LEVELS, type BlockColor } from "@/lib/games/arkanoid/levels";
 import {
   EXPLOSION_DURATION,
@@ -29,6 +30,136 @@ const PAUSE_BTN_GAP = 12;
 const PAUSE_BTN_Y = 340;
 const PAUSE_BTN_ROW_X = (W - (5 * PAUSE_BTN_W + 4 * PAUSE_BTN_GAP)) / 2;
 const ASSETS = "/games/arkanoid";
+// ── Skins ─────────────────────────────────────────────────────────────────────
+// clasico: spritesheet original. retro: fósforo verde de CRT, bloques planos y
+// scanlines. neon: paleta de Arcade Vault con halo. retro y neon se dibujan en
+// vectorial (fillRect / arc) con los colores del skin. Lo elige React con setSkin.
+export type ArkanoidSkinId = StandardSkinId;
+interface Skin {
+  sprites: boolean; // true: dibuja con el spritesheet; false: vectorial
+  glow: number; // shadowBlur del halo; 0 = sin halo
+  scanlines: boolean; // líneas de barrido CRT sobre todo el canvas
+  roundBall: boolean; // pelota circular (vectorial) o cuadrada
+  bg: string;
+  blocks: Record<BlockColor, string>; // color de cada bloque (vectorial)
+  // Solo sprites: aclarado "screen" sobre el sprite para llegar a 3:1 en oscuro.
+  spriteLift: Partial<Record<BlockColor, string>>;
+  blockCore: string | null; // relleno interior del bloque (tubo de neón)
+  paddle: string;
+  ball: string;
+  hudText: string;
+  overlayBg: string; // velo de game over / victoria
+  overlayTitle: string;
+  overlayText: string;
+  pauseBg: string; // velo del selector de nivel
+  pauseText: string;
+  btnBg: string;
+  btnActiveBg: string;
+  btnBorder: string;
+  btnText: string;
+  btnActiveText: string;
+  scanline: string;
+}
+const SKINS: Record<ArkanoidSkinId, Skin> = {
+  clasico: {
+    sprites: true,
+    glow: 0,
+    scanlines: false,
+    roundBall: true,
+    bg: "#000",
+    // Color dominante de cada sprite (referencia; clasico dibuja los sprites).
+    blocks: {
+      gray: "#5f5e6c",
+      red: "#c02a3e",
+      yellow: "#d9bd4c",
+      cyan: "#4fc99c",
+      magenta: "#632ff4",
+      hotpink: "#fc7d1c",
+      green: "#44aaf3",
+    },
+    spriteLift: { gray: "#383838" },
+    blockCore: null,
+    paddle: "#babac5",
+    ball: "#babac5",
+    hudText: "#fff",
+    overlayBg: "rgba(0, 0, 0, 0.75)",
+    overlayTitle: "#fff",
+    overlayText: "#fff",
+    pauseBg: "rgba(0, 0, 0, 0.75)",
+    pauseText: "#fff",
+    btnBg: "#444",
+    btnActiveBg: "#f0c040",
+    btnBorder: "#fff",
+    btnText: "#fff",
+    btnActiveText: "#000",
+    scanline: "rgba(0, 0, 0, 0)",
+  },
+  retro: {
+    sprites: false,
+    glow: 0,
+    scanlines: true,
+    roundBall: false,
+    bg: "#020a04",
+    blocks: {
+      gray: "#3f8f55",
+      red: "#39ff6e",
+      yellow: "#b6ff7a",
+      cyan: "#2ee06a",
+      magenta: "#22b852",
+      hotpink: "#8cffa0",
+      green: "#1fd65e",
+    },
+    spriteLift: {},
+    blockCore: null,
+    paddle: "#b6ff7a",
+    ball: "#e0ffe4",
+    hudText: "#39ff6e",
+    overlayBg: "rgba(2, 10, 4, 0.8)",
+    overlayTitle: "#b6ff7a",
+    overlayText: "#39ff6e",
+    pauseBg: "rgba(2, 10, 4, 0.8)",
+    pauseText: "#39ff6e",
+    btnBg: "#06240f",
+    btnActiveBg: "#39ff6e",
+    btnBorder: "#39ff6e",
+    btnText: "#39ff6e",
+    btnActiveText: "#021006",
+    scanline: "rgba(0, 0, 0, 0.25)",
+  },
+  neon: {
+    sprites: false,
+    glow: 14,
+    scanlines: false,
+    roundBall: true,
+    bg: "#0a0a0f",
+    blocks: {
+      gray: "#c7d0e0",
+      red: "#ff006e",
+      yellow: "#f5ff00",
+      cyan: "#00f5ff",
+      magenta: "#aa00ff",
+      hotpink: "#ff4fd8",
+      green: "#00ff88",
+    },
+    spriteLift: {},
+    blockCore: "rgba(10, 10, 15, 0.55)",
+    paddle: "#00f5ff",
+    ball: "#f5ff00",
+    hudText: "#e6e9ff",
+    overlayBg: "rgba(10, 10, 15, 0.85)",
+    overlayTitle: "#ff006e",
+    overlayText: "#e6e9ff",
+    pauseBg: "rgba(10, 10, 15, 0.8)",
+    pauseText: "#e6e9ff",
+    btnBg: "#15151f",
+    btnActiveBg: "#ff006e",
+    btnBorder: "#00f5ff",
+    btnText: "#e6e9ff",
+    btnActiveText: "#0a0a0f",
+    scanline: "rgba(0, 0, 0, 0)",
+  },
+};
+export const isArkanoidSkin = (id: string): id is ArkanoidSkinId => id in SKINS;
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 interface Rect {
   x: number;
@@ -77,6 +208,7 @@ export function createArkanoidEngine(
     // El navegador puede bloquear el audio antes del primer gesto: se ignora.
     clone.play().catch(() => {});
   }
+  let skin: Skin = SKINS.clasico; // solo lo escribe setSkin
   // ── Estado del juego ────────────────────────────────────────────────────────
   let state: "playing" | "gameover" | "win" = "playing";
   let paused = false; // solo lo escribe setPaused
@@ -231,8 +363,90 @@ export function createArkanoidEngine(
   ) {
     ctx.drawImage(sheet, sp.sx, sp.sy, sp.sw, sp.sh, x, y, w, h);
   }
+  // Halo de neón: se activa antes de dibujar y se resetea siempre después.
+  function withGlow(color: string, paint: () => void) {
+    if (skin.glow > 0) {
+      ctx.shadowBlur = skin.glow;
+      ctx.shadowColor = color;
+    }
+    paint();
+    ctx.shadowBlur = 0;
+  }
+  function drawBlock(block: Block) {
+    if (skin.sprites) {
+      const { x, y, w, h } = block;
+      drawRect(SPRITES.blocks[block.color], x, y, w, h);
+      const lift = skin.spriteLift[block.color];
+      if (lift) {
+        ctx.globalCompositeOperation = "screen";
+        ctx.fillStyle = lift;
+        ctx.fillRect(x, y, w, h);
+        ctx.globalCompositeOperation = "source-over";
+      }
+      return;
+    }
+    const color = skin.blocks[block.color];
+    const inset = skin.blockCore ? 3 : 1;
+    const { x, y, w, h } = block;
+    ctx.fillStyle = color;
+    withGlow(color, () =>
+      ctx.fillRect(x + inset, y + inset, w - inset * 2, h - inset * 2),
+    );
+    if (skin.blockCore) {
+      ctx.fillStyle = skin.blockCore;
+      const core = inset + 3;
+      ctx.fillRect(x + core, y + core, w - core * 2, h - core * 2);
+    }
+  }
+  // Explosión vectorial: 4 pasos que encogen y apagan el bloque.
+  function drawExplosion(exp: Explosion, frame: number) {
+    if (skin.sprites) {
+      drawRect(EXPLOSION_FRAMES[exp.color][frame], exp.x, exp.y, exp.w, exp.h);
+      return;
+    }
+    const color = skin.blocks[exp.color];
+    const dx = (frame + 1) * (exp.w / 10);
+    const dy = (frame + 1) * (exp.h / 10);
+    ctx.globalAlpha = 1 - frame * 0.22;
+    ctx.fillStyle = color;
+    withGlow(color, () =>
+      ctx.fillRect(exp.x + dx, exp.y + dy, exp.w - dx * 2, exp.h - dy * 2),
+    );
+    ctx.globalAlpha = 1;
+  }
+  function drawPaddle() {
+    if (skin.sprites) {
+      drawRect(SPRITES.paddle, paddle.x, paddle.y, paddle.w, paddle.h);
+      return;
+    }
+    ctx.fillStyle = skin.paddle;
+    withGlow(skin.paddle, () =>
+      ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h),
+    );
+  }
+  function drawBall(x: number, y: number, size: number) {
+    if (skin.sprites) {
+      drawRect(SPRITES.ball, x, y, size, size);
+      return;
+    }
+    ctx.fillStyle = skin.ball;
+    withGlow(skin.ball, () => {
+      if (skin.roundBall) {
+        ctx.beginPath();
+        ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillRect(x + 1, y + 1, size - 2, size - 2);
+      }
+    });
+  }
+  // Líneas de barrido CRT (skin retro): una fila oscura cada 3 px.
+  function drawScanlines() {
+    ctx.fillStyle = skin.scanline;
+    for (let y = 0; y < H; y += 3) ctx.fillRect(0, y, W, 1);
+  }
   function drawHUD() {
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = skin.hudText;
     ctx.font = "bold 18px monospace";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
@@ -243,18 +457,19 @@ export function createArkanoidEngine(
     const ballSpacing = 4;
     for (let i = 0; i < lives; i++) {
       const bx = W - 10 - (lives - i) * (ballSize + ballSpacing);
-      drawRect(SPRITES.ball, bx, 10, ballSize, ballSize);
+      drawBall(bx, 10, ballSize);
     }
   }
   // Fin de partida: título y puntuación, sin texto de reinicio (lo hace React).
   function drawOverlay(title: string, titleSize: number) {
-    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+    ctx.fillStyle = skin.overlayBg;
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = skin.overlayTitle;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.font = `bold ${titleSize}px monospace`;
-    ctx.fillText(title, W / 2, H / 2 - 24);
+    withGlow(skin.overlayTitle, () => ctx.fillText(title, W / 2, H / 2 - 24));
+    ctx.fillStyle = skin.overlayText;
     ctx.font = "bold 24px monospace";
     ctx.fillText(
       `Puntuación: ${score.toLocaleString("es-ES")}`,
@@ -264,9 +479,9 @@ export function createArkanoidEngine(
   }
   // Selector de nivel; el título EN PAUSA lo pone GamePlayer.
   function drawPauseOverlay() {
-    ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+    ctx.fillStyle = skin.pauseBg;
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = skin.pauseText;
     ctx.font = "bold 16px monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -274,14 +489,14 @@ export function createArkanoidEngine(
     for (let i = 0; i < LEVELS.length; i++) {
       const bx = PAUSE_BTN_ROW_X + i * (PAUSE_BTN_W + PAUSE_BTN_GAP);
       const isActive = i + 1 === level;
-      ctx.fillStyle = isActive ? "#f0c040" : "#444";
-      ctx.strokeStyle = "#fff";
+      ctx.fillStyle = isActive ? skin.btnActiveBg : skin.btnBg;
+      ctx.strokeStyle = skin.btnBorder;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.roundRect(bx, PAUSE_BTN_Y, PAUSE_BTN_W, PAUSE_BTN_H, 6);
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = isActive ? "#000" : "#fff";
+      ctx.fillStyle = isActive ? skin.btnActiveText : skin.btnText;
       ctx.font = "bold 20px monospace";
       ctx.fillText(
         String(i + 1),
@@ -291,33 +506,25 @@ export function createArkanoidEngine(
     }
   }
   function draw() {
-    ctx.fillStyle = "#000";
+    ctx.fillStyle = skin.bg;
     ctx.fillRect(0, 0, W, H);
     if (!sheetLoaded) return;
-    for (const block of blocks) {
-      if (block.alive)
-        drawRect(
-          SPRITES.blocks[block.color],
-          block.x,
-          block.y,
-          block.w,
-          block.h,
-        );
-    }
+    for (const block of blocks) if (block.alive) drawBlock(block);
     for (const exp of explosions) {
       const frame = Math.min(
         Math.floor((exp.elapsed / EXPLOSION_DURATION) * 4),
         3,
       );
-      drawRect(EXPLOSION_FRAMES[exp.color][frame], exp.x, exp.y, exp.w, exp.h);
+      drawExplosion(exp, frame);
     }
-    drawRect(SPRITES.paddle, paddle.x, paddle.y, paddle.w, paddle.h);
-    drawRect(SPRITES.ball, ball.x, ball.y, ball.w, ball.h);
+    drawPaddle();
+    drawBall(ball.x, ball.y, ball.w);
     if (state === "playing") drawHUD();
     // 64 px como el original no cabe en 800 px con el texto de victoria.
     if (state === "gameover") drawOverlay("GAME OVER", 64);
     if (state === "win") drawOverlay("¡Completaste el juego!", 44);
     if (paused && state === "playing") drawPauseOverlay();
+    if (skin.scanlines) drawScanlines();
   }
   // ── Input ───────────────────────────────────────────────────────────────────
   // Coordenadas del puntero en el espacio lógico 800×600.
@@ -413,6 +620,11 @@ export function createArkanoidEngine(
       lastTime = null;
       draw();
       notify();
+    },
+    setSkin(id: string) {
+      if (!isArkanoidSkin(id)) return;
+      skin = SKINS[id];
+      draw(); // al instante, también en pausa o en game over
     },
     destroy() {
       if (rafId !== null) cancelAnimationFrame(rafId);

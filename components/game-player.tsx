@@ -118,13 +118,9 @@ export function GamePlayer({
   );
   const skin =
     skins?.options.find((o) => o.id === storedSkin) ?? skins?.options[0];
-  const cycleSkin = () => {
-    if (!skins || !skin) return;
-    const i = skins.options.findIndex((o) => o.id === skin.id);
-    writeStoredSkin(
-      skins.storageKey,
-      skins.options[(i + 1) % skins.options.length].id,
-    );
+  const selectSkin = (id: string) => {
+    if (!skins || !skins.options.some((o) => o.id === id)) return;
+    writeStoredSkin(skins.storageKey, id);
   };
   const engineRef = useRef<GameEngine | null>(null);
   // Puntaje del mock, en una ref para que el intervalo decida el nivel sin efectos.
@@ -152,7 +148,11 @@ export function GamePlayer({
       if (e.code !== "KeyP" && e.code !== "Escape") return;
       if (e.repeat || over) return;
       const t = e.target;
-      if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement)
+      if (
+        t instanceof HTMLInputElement ||
+        t instanceof HTMLTextAreaElement ||
+        t instanceof HTMLSelectElement
+      )
         return;
       e.preventDefault();
       setPaused((p) => !p);
@@ -220,17 +220,27 @@ export function GamePlayer({
           )}
         </div>
         <div className="hud-actions">
-          {skin && (
-            <button
-              className="btn"
-              onClick={(e) => {
-                cycleSkin();
-                // Sin foco: Espacio no debe volver a pulsar el botón.
-                e.currentTarget.blur();
-              }}
-            >
-              TEMA: {skin.label}
-            </button>
+          {skins && skin && (
+            <label className="skin-select">
+              <span className="skin-select-label">TEMA</span>
+              <select
+                value={skin.id}
+                aria-label="Tema visual del juego"
+                onChange={(e) => {
+                  selectSkin(e.target.value);
+                  // Sin foco: las flechas deben volver a mover el juego.
+                  e.currentTarget.blur();
+                }}
+                // Con el selector enfocado, las teclas no llegan al juego.
+                onKeyDown={(e) => e.stopPropagation()}
+              >
+                {skins.options.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           )}
           <button className="btn yellow" onClick={() => setPaused((p) => !p)}>
             {paused ? "REANUDAR" : "PAUSA"}
