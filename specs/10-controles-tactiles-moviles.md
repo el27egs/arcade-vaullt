@@ -1,6 +1,6 @@
 # SPEC 10 — Controles táctiles: jugar los juegos reales en un móvil
 
-> **Status:** Approved
+> **Status:** Implemented
 > **Depends on:** SPEC 05 (asteroides-juego-real), SPEC 07 (tetris-juego-real-y-leaderboard), SPEC 08 (arkanoid-juego-real-y-leaderboard), SPEC 09 (snake-juego-real-y-leaderboard)
 > **Date:** 2026-11-25
 > **Objective:** Añadir a `/juegos/[id]/jugar` un modo táctil (pantalla vertical, mando virtual y
