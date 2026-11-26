@@ -1,10 +1,21 @@
 // ===== lib/games/asteroides/engine.ts — motor canvas de ASTEROIDES =====
 // Port a TypeScript de references/started-games/02-asteroids/game.js.
 // Sin globals: el contexto y el input llegan por parámetro.
-import type { GameCallbacks, GameEngine } from "@/lib/games/types";
+import type {
+  GameCallbacks,
+  GameEngine,
+  GameLayout,
+} from "@/lib/games/types";
 import type { StandardSkinId } from "@/lib/games/skins";
-const W = 800;
-const H = 600;
+// Tamaño del mundo (= canvas lógico). Horizontal (escritorio): 800×600.
+// Vertical (táctil, SPEC 10): 600×800. Lo cambia solo setLayout del motor
+// activo; createAsteroidesEngine lo devuelve a horizontal.
+const LAYOUTS = {
+  landscape: { w: 800, h: 600 },
+  portrait: { w: 600, h: 800 },
+} as const;
+let W: number = LAYOUTS.landscape.w;
+let H: number = LAYOUTS.landscape.h;
 type Keys = Record<string, boolean>;
 // ── Utils ─────────────────────────────────────────────────────────────────────
 const wrap = (v: number, max: number) => ((v % max) + max) % max;
@@ -398,6 +409,9 @@ export function createAsteroidesEngine(
 ): GameEngine {
   const maybeCtx = canvas.getContext("2d");
   if (!maybeCtx) throw new Error("ASTEROIDES: canvas 2D no disponible");
+  let layout: GameLayout = "landscape";
+  W = LAYOUTS.landscape.w;
+  H = LAYOUTS.landscape.h;
   const ctx: CanvasRenderingContext2D = maybeCtx;
   // ── Input ───────────────────────────────────────────────────────────────────
   const keys: Keys = {};
@@ -658,6 +672,22 @@ export function createAsteroidesEngine(
       draw();
       notify();
       rafId = requestAnimationFrame(loop);
+    },
+    setLayout(next: GameLayout) {
+      if (!(next in LAYOUTS) || next === layout) return;
+      // Las posiciones se reescalan al mundo nuevo: nada queda fuera.
+      const sx = LAYOUTS[next].w / W;
+      const sy = LAYOUTS[next].h / H;
+      layout = next;
+      W = LAYOUTS[next].w;
+      H = LAYOUTS[next].h;
+      canvas.width = W; // redimensionar borra el canvas: se redibuja
+      canvas.height = H;
+      for (const e of [ship, ...bullets, ...asteroids, ...particles]) {
+        e.x *= sx;
+        e.y *= sy;
+      }
+      draw();
     },
     setSkin(id: string) {
       if (!isAsteroidesSkin(id)) return;

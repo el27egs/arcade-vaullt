@@ -1,7 +1,11 @@
 // ===== lib/games/arkanoid/engine.ts — motor canvas de ARKANOID =====
 // Port a TypeScript de references/started-games/04-arkanoid/game.js.
 // Sin globals: el canvas, la imagen y los sonidos son de cada instancia.
-import type { GameCallbacks, GameEngine } from "@/lib/games/types";
+import type {
+  GameCallbacks,
+  GameEngine,
+  GameLayout,
+} from "@/lib/games/types";
 import type { StandardSkinId } from "@/lib/games/skins";
 import { LEVELS, type BlockColor } from "@/lib/games/arkanoid/levels";
 import {
@@ -11,13 +15,17 @@ import {
   type SpriteRect,
 } from "@/lib/games/arkanoid/sprites";
 // ── Constantes ────────────────────────────────────────────────────────────────
-const W = 800;
-const H = 600;
+// Horizontal (escritorio): 800×600. Vertical (táctil, SPEC 10): 680×880, con
+// el muro de bloques centrado y la paleta a 40 px del fondo.
+const LAYOUTS = {
+  landscape: { w: 800, h: 600 },
+  portrait: { w: 680, h: 880 },
+} as const;
+const PADDLE_BOTTOM = 40; // distancia de la paleta al fondo (y = 560 en 800×600)
 const PADDLE_SPEED = 400;
 const BLOCK_COLS = 10;
 const BLOCK_W = 64;
 const BLOCK_H = 24;
-const BLOCKS_ORIGIN_X = (W - BLOCK_COLS * BLOCK_W) / 2;
 const BLOCKS_ORIGIN_Y = 80;
 const BASE_BALL_VX = 200;
 const BASE_BALL_VY = -300;
@@ -27,8 +35,7 @@ const BLOCK_POINTS = 10;
 const PAUSE_BTN_W = 60;
 const PAUSE_BTN_H = 40;
 const PAUSE_BTN_GAP = 12;
-const PAUSE_BTN_Y = 340;
-const PAUSE_BTN_ROW_X = (W - (5 * PAUSE_BTN_W + 4 * PAUSE_BTN_GAP)) / 2;
+const PAUSE_BTN_ROW_W = 5 * PAUSE_BTN_W + 4 * PAUSE_BTN_GAP;
 const ASSETS = "/games/arkanoid";
 // ── Skins ─────────────────────────────────────────────────────────────────────
 // clasico: spritesheet original. retro: fósforo verde de CRT, bloques planos y
@@ -209,13 +216,20 @@ export function createArkanoidEngine(
     clone.play().catch(() => {});
   }
   let skin: Skin = SKINS.clasico; // solo lo escribe setSkin
+  // Tamaño lógico del canvas; solo lo cambia setLayout.
+  let layout: GameLayout = "landscape";
+  let W: number = LAYOUTS.landscape.w;
+  let H: number = LAYOUTS.landscape.h;
+  const blocksOriginX = () => (W - BLOCK_COLS * BLOCK_W) / 2;
+  const pauseBtnY = () => H / 2 + 40; // 340 en 800×600
+  const pauseRowX = () => (W - PAUSE_BTN_ROW_W) / 2;
   // ── Estado del juego ────────────────────────────────────────────────────────
   let state: "playing" | "gameover" | "win" = "playing";
   let paused = false; // solo lo escribe setPaused
   let score = 0;
   let lives = START_LIVES;
   let level = 1;
-  const paddle: Rect = { x: (W - 81) / 2, y: 560, w: 81, h: 14 };
+  const paddle: Rect = { x: (W - 81) / 2, y: H - PADDLE_BOTTOM, w: 81, h: 14 };
   const ball: Ball = { x: 0, y: 0, w: 16, h: 16, vx: 0, vy: 0 };
   let blocks: Block[] = [];
   let explosions: Explosion[] = [];
@@ -239,7 +253,7 @@ export function createArkanoidEngine(
   function loadLevel(n: number) {
     level = n;
     blocks = LEVELS[n - 1].blocks.map((b) => ({
-      x: BLOCKS_ORIGIN_X + b.col * BLOCK_W,
+      x: blocksOriginX() + b.col * BLOCK_W,
       y: BLOCKS_ORIGIN_Y + b.row * BLOCK_H,
       w: BLOCK_W,
       h: BLOCK_H,
@@ -485,15 +499,15 @@ export function createArkanoidEngine(
     ctx.font = "bold 16px monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("Saltar al nivel:", W / 2, 310);
+    ctx.fillText("Saltar al nivel:", W / 2, H / 2 + 10);
     for (let i = 0; i < LEVELS.length; i++) {
-      const bx = PAUSE_BTN_ROW_X + i * (PAUSE_BTN_W + PAUSE_BTN_GAP);
+      const bx = pauseRowX() + i * (PAUSE_BTN_W + PAUSE_BTN_GAP);
       const isActive = i + 1 === level;
       ctx.fillStyle = isActive ? skin.btnActiveBg : skin.btnBg;
       ctx.strokeStyle = skin.btnBorder;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(bx, PAUSE_BTN_Y, PAUSE_BTN_W, PAUSE_BTN_H, 6);
+      ctx.roundRect(bx, pauseBtnY(), PAUSE_BTN_W, PAUSE_BTN_H, 6);
       ctx.fill();
       ctx.stroke();
       ctx.fillStyle = isActive ? skin.btnActiveText : skin.btnText;
@@ -501,7 +515,7 @@ export function createArkanoidEngine(
       ctx.fillText(
         String(i + 1),
         bx + PAUSE_BTN_W / 2,
-        PAUSE_BTN_Y + PAUSE_BTN_H / 2,
+        pauseBtnY() + PAUSE_BTN_H / 2,
       );
     }
   }
@@ -550,17 +564,25 @@ export function createArkanoidEngine(
     const { x } = toCanvas(e);
     paddle.x = Math.max(0, Math.min(W - paddle.w, x - paddle.w / 2));
   }
+  // Táctil/lápiz (SPEC 10): arrastrar el dedo sobre el canvas mueve la paleta.
+  // El ratón sigue usando onMouseMove.
+  function onPointerDrag(e: PointerEvent) {
+    if (e.pointerType === "mouse") return;
+    if (paused || state !== "playing") return;
+    const { x } = toCanvas(e);
+    paddle.x = Math.max(0, Math.min(W - paddle.w, x - paddle.w / 2));
+  }
   function onClick(e: MouseEvent) {
     // El clic solo actúa en el selector de nivel de la pausa.
     if (!paused || state !== "playing") return;
     const { x, y } = toCanvas(e);
     for (let i = 0; i < LEVELS.length; i++) {
-      const bx = PAUSE_BTN_ROW_X + i * (PAUSE_BTN_W + PAUSE_BTN_GAP);
+      const bx = pauseRowX() + i * (PAUSE_BTN_W + PAUSE_BTN_GAP);
       if (
         x >= bx &&
         x <= bx + PAUSE_BTN_W &&
-        y >= PAUSE_BTN_Y &&
-        y <= PAUSE_BTN_Y + PAUSE_BTN_H
+        y >= pauseBtnY() &&
+        y <= pauseBtnY() + PAUSE_BTN_H
       ) {
         // Sigue en pausa: solo React reanuda.
         jumpToLevel(i + 1);
@@ -596,6 +618,8 @@ export function createArkanoidEngine(
       window.addEventListener("keyup", onKeyUp);
       canvas.addEventListener("mousemove", onMouseMove);
       canvas.addEventListener("click", onClick);
+      canvas.addEventListener("pointerdown", onPointerDrag);
+      canvas.addEventListener("pointermove", onPointerDrag);
       draw();
       notify();
       rafId = requestAnimationFrame(loop);
@@ -621,6 +645,27 @@ export function createArkanoidEngine(
       draw();
       notify();
     },
+    setLayout(next: GameLayout) {
+      if (!(next in LAYOUTS) || next === layout) return;
+      const dx = (LAYOUTS[next].w - W) / 2; // el muro sigue centrado
+      const oldPaddleY = paddle.y;
+      layout = next;
+      W = LAYOUTS[next].w;
+      H = LAYOUTS[next].h;
+      canvas.width = W; // redimensionar borra el canvas: se redibuja
+      canvas.height = H;
+      for (const block of blocks) block.x += dx;
+      for (const ex of explosions) ex.x += dx;
+      paddle.y = H - PADDLE_BOTTOM;
+      paddle.x = Math.max(0, Math.min(W - paddle.w, paddle.x + dx));
+      ball.x = Math.max(0, Math.min(W - ball.w, ball.x + dx));
+      // Pelota sobre la paleta: se queda encima; en vuelo, misma altura relativa.
+      ball.y =
+        ball.y + ball.h >= oldPaddleY
+          ? paddle.y - ball.h
+          : (ball.y / oldPaddleY) * paddle.y;
+      draw();
+    },
     setSkin(id: string) {
       if (!isArkanoidSkin(id)) return;
       skin = SKINS[id];
@@ -634,6 +679,8 @@ export function createArkanoidEngine(
       window.removeEventListener("keyup", onKeyUp);
       canvas.removeEventListener("mousemove", onMouseMove);
       canvas.removeEventListener("click", onClick);
+      canvas.removeEventListener("pointerdown", onPointerDrag);
+      canvas.removeEventListener("pointermove", onPointerDrag);
       started = false;
     },
   };

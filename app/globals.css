@@ -1346,3 +1346,153 @@ a { color: inherit; text-decoration: none; }
   font-family: var(--mono); font-size: 12px; color: var(--magenta);
   margin: -4px 0 16px; letter-spacing: 0.02em; line-height: 1.5;
 }
+
+/* ===== Mando táctil (SPEC 10): solo con puntero táctil ===== */
+.touch-pad, .touch-bar { display: none; }
+@media (pointer: coarse) {
+  .touch-pad {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 24px;
+    padding: 0 6px;
+  }
+  /* Fila bajo el mando: PAUSA, TEMA y SALIR. */
+  .touch-bar {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 24px;
+  }
+  .touch-bar .btn { padding: 10px 12px; font-size: 9px; }
+  .touch-bar .skin-select { flex: 1 1 auto; justify-content: space-between; }
+  .touch-bar .skin-select select { padding: 10px 30px 10px 4px; font-size: 9px; }
+  /* Todo el reproductor cabe en el alto visible más pequeño (svh: con la barra
+     de direcciones a la vista). La pantalla se queda con lo que dejan el mando,
+     la fila de botones, los márgenes y un respiro extra (380 px en total). */
+  .av-player.has-touch { --touch-chrome: 380px; --screen-ratio: 4 / 3; }
+  .av-player.has-touch .crt:has(.can-portrait) { --screen-ratio: var(--portrait-ratio); }
+  .av-player.has-touch .crt {
+    max-width: calc((100svh - var(--touch-chrome)) * var(--screen-ratio) + 20px);
+    margin-inline: auto;
+  }
+  /* Reproductor táctil a pantalla limpia: sin barra de navegación, sin su
+     menú lateral y sin pie del sitio (solo en /juegos/[id]/jugar con mando). */
+  body:has(.av-player.has-touch) .av-nav,
+  body:has(.av-player.has-touch) .av-mobile-backdrop,
+  body:has(.av-player.has-touch) .av-mobile-panel,
+  body:has(.av-player.has-touch) #root > footer { display: none; }
+  /* Sin HUD de React: la puntuación se ve dentro del canvas. */
+  .av-player.has-touch .player-hud { display: none; }
+  .av-player.has-touch { margin: 28px auto 0; padding-bottom: 20px; }
+  .av-player.has-touch .crt-bottom { font-size: 7px; gap: 8px; }
+  .av-player.has-touch .crt-bottom span { white-space: nowrap; }
+  /* Juegos con layout vertical: la CRT toma la proporción del registro
+     (touch.portrait → --portrait-ratio, en línea en .av-player). */
+  .crt-screen.can-portrait { aspect-ratio: var(--portrait-ratio); }
+}
+.touch-pad {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.crt-screen canvas { touch-action: none; }
+.touch-dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 54px);
+  grid-template-rows: repeat(3, 54px);
+  gap: 6px;
+}
+.touch-dpad .dpad-up { grid-area: 1 / 2; }
+.touch-dpad .dpad-left { grid-area: 2 / 1; }
+.touch-dpad .dpad-right { grid-area: 2 / 3; }
+.touch-dpad .dpad-down { grid-area: 3 / 2; }
+/* row-reverse: A (primera acción) queda a la derecha y B a su izquierda. */
+.touch-actions {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 16px;
+}
+.touch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  padding: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--ink);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 10px;
+  touch-action: none;
+  cursor: pointer;
+  transition: box-shadow 80ms ease, background 80ms ease, transform 80ms ease;
+}
+.touch-btn.is-down {
+  background: rgba(0,245,255,0.2);
+  border-color: var(--cyan);
+  box-shadow: 0 0 14px rgba(0,245,255,0.55);
+  transform: scale(0.94);
+}
+.touch-btn.action {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  font-family: var(--pixel);
+  font-size: 14px;
+}
+.touch-btn.action-a {
+  color: #ffd0d8;
+  background: rgba(255,0,110,0.28);
+  border: 2px solid rgba(255,0,110,0.75);
+}
+.touch-btn.action-a.is-down {
+  background: rgba(255,0,110,0.5);
+  box-shadow: 0 0 16px rgba(255,0,110,0.7);
+}
+.touch-btn.action-b {
+  color: #d0f0ff;
+  background: rgba(40,120,255,0.28);
+  border: 2px solid rgba(80,150,255,0.75);
+}
+.touch-btn.action-b.is-down {
+  background: rgba(40,120,255,0.5);
+  box-shadow: 0 0 16px rgba(80,150,255,0.7);
+}
+/* Aviso de pausa táctil: es un botón (tocar para reanudar). */
+.touch-resume {
+  width: 100%;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+/* ===== Reproductor compacto en móvil (SPEC 10) ===== */
+@media (max-width: 600px) {
+  .crt { padding: 10px; border-radius: 16px; }
+  .player-hud { padding: 12px; gap: 12px; }
+  .player-hud > div:first-child { gap: 14px !important; }
+  .hud-stat .v { font-size: 12px; }
+  .hud-actions { width: 100%; flex-wrap: wrap; gap: 8px; }
+  .hud-actions .btn { padding: 10px 12px; flex: 1 1 auto; }
+  .hud-actions .skin-select { flex: 1 1 100%; justify-content: space-between; }
+  .crt-bottom { margin-top: 10px; }
+  .crt-bottom span:nth-child(2) { display: none; }
+}
+
+/* Modal de fin de partida en móvil (SPEC 10): el botón GUARDAR PUNTUACIÓN va
+   debajo de la caja del nombre, a todo el ancho, en lugar de desbordarse. */
+@media (pointer: coarse), (max-width: 600px) {
+  .modal .input-row { flex-direction: column; }
+  .modal .input-row input { flex: none; width: 100%; min-width: 0; }
+  .modal .input-row .btn { width: 100%; }
+}
