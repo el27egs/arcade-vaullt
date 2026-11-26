@@ -109,6 +109,15 @@ en `references/game-with-themes.md`.
 - `lib/games/registry.ts` — `GAME_REGISTRY`: id → `Canvas`, `hud`, optional `skins`
   (persisted in `localStorage[storageKey]`) and `pauseOverlay` (`"full"` | `"compact"`).
   A game without an entry falls back to the mock player in `components/game-player.tsx`.
+  Optional `touch` (`TouchControls`: `dpad` + 0–2 `actions` shown as round A/B buttons, each a
+  `TouchButton` with `code`, `label`, `repeat?`; plus `portrait?`, the touch canvas width/height
+  ratio) turns on the touch mode, only with `(pointer: coarse)`. In that mode the nav, footer and
+  React HUD are hidden, the CRT is sized to fit `100svh`, and `components/touch-controls.tsx` plus
+  a PAUSA/TEMA/SALIR row (`.touch-bar`) appear below it. Each button dispatches synthetic
+  `keydown`/`keyup` on `window` with the real `e.code`, so engines must listen on `window`, read
+  `e.code` and not filter by `isTrusted`. Engines with `touch.portrait` may implement optional
+  `setLayout("portrait" | "landscape")`, which resizes the canvas and redraws. A game without
+  `touch` has no touch mode. Recipe for new games: SPEC 10, "Receta".
 - `lib/data.ts` — `GAMES` catalog texts (title, descriptions, cover, color). Hybrid stage:
   pages read the card from `GAMES` and stats/leaderboards from Supabase.
 - `references/started-games/` — standalone games to port; `references/source-assets/` —

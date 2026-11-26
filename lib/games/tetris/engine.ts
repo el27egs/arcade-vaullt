@@ -1,16 +1,24 @@
 // ===== lib/games/tetris/engine.ts — motor canvas de TETRIS =====
 // Port a TypeScript de references/started-games/03-tetris/game.js.
 // Sin globals: el tablero y el contexto llegan por parámetro.
-import type { GameCallbacks, GameEngine } from "@/lib/games/types";
+import type {
+  GameCallbacks,
+  GameEngine,
+  GameLayout,
+} from "@/lib/games/types";
 import type { StandardSkinId } from "@/lib/games/skins";
 // ── Constantes ────────────────────────────────────────────────────────────────
-const W = 800;
-const H = 600;
 const COLS = 10;
 const ROWS = 20;
 const BLOCK = 30;
-const BOARD_X = (W - COLS * BLOCK) / 2; // tablero centrado: x de 250 a 550
-const NEXT_BLOCK = 30;
+// Horizontal (escritorio): 800×600, tablero centrado (x de 250 a 550) con los
+// paneles CONTROLS y stats a los lados. Vertical (táctil, SPEC 10): 420×600,
+// tablero a la izquierda y una columna estrecha de stats a la derecha.
+const LAYOUTS = {
+  landscape: { w: 800, h: 600, boardX: 250, nextBlock: 30, valueSize: 26 },
+  portrait: { w: 420, h: 600, boardX: 10, nextBlock: 20, valueSize: 16 },
+} as const;
+type Layout = keyof typeof LAYOUTS;
 // Colores de las piezas del original (índices 1–8)
 const ORIGINAL_COLORS: (string | null)[] = [
   null,
@@ -336,6 +344,8 @@ export function createTetrisEngine(
   let state: "playing" | "gameover";
   let paused = false; // solo lo escribe setPaused
   let skin: Skin = SKINS.clasico; // solo lo escribe setSkin
+  let layout: Layout = "landscape"; // solo lo escribe setLayout
+  let L: (typeof LAYOUTS)[Layout] = LAYOUTS.landscape;
   // Últimos valores notificados a React (para avisar solo-al-cambiar)
   let sentScore: number | null = null;
   let sentLines: number | null = null;
@@ -447,7 +457,7 @@ export function createTetrisEngine(
   }
   function drawValue(text: string, x: number, y: number) {
     ctx.fillStyle = skin.value;
-    ctx.font = `700 26px ${MONO}`;
+    ctx.font = `700 ${L.valueSize}px ${MONO}`;
     ctx.letterSpacing = "1px";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
@@ -464,24 +474,24 @@ export function createTetrisEngine(
     ctx.stroke();
   }
   function drawBoard() {
-    drawBox(BOARD_X - 0.5, -0.5, COLS * BLOCK + 1, ROWS * BLOCK + 1);
+    drawBox(L.boardX - 0.5, -0.5, COLS * BLOCK + 1, ROWS * BLOCK + 1);
     ctx.strokeStyle = skin.gridLine;
     ctx.lineWidth = 0.5;
     for (let c = 1; c < COLS; c++) {
       ctx.beginPath();
-      ctx.moveTo(BOARD_X + c * BLOCK, 0);
-      ctx.lineTo(BOARD_X + c * BLOCK, ROWS * BLOCK);
+      ctx.moveTo(L.boardX + c * BLOCK, 0);
+      ctx.lineTo(L.boardX + c * BLOCK, ROWS * BLOCK);
       ctx.stroke();
     }
     for (let r = 1; r < ROWS; r++) {
       ctx.beginPath();
-      ctx.moveTo(BOARD_X, r * BLOCK);
-      ctx.lineTo(BOARD_X + COLS * BLOCK, r * BLOCK);
+      ctx.moveTo(L.boardX, r * BLOCK);
+      ctx.lineTo(L.boardX + COLS * BLOCK, r * BLOCK);
       ctx.stroke();
     }
     for (let r = 0; r < ROWS; r++)
       for (let c = 0; c < COLS; c++)
-        drawBlock(ctx, skin, BOARD_X, 0, c, r, board[r][c], BLOCK);
+        drawBlock(ctx, skin, L.boardX, 0, c, r, board[r][c], BLOCK);
     if (state === "gameover") return;
     // ghost
     const gy = ghostY(board, current);
@@ -491,7 +501,7 @@ export function createTetrisEngine(
           drawBlock(
             ctx,
             skin,
-            BOARD_X,
+            L.boardX,
             0,
             current.x + c,
             gy + r,
@@ -505,7 +515,7 @@ export function createTetrisEngine(
         drawBlock(
           ctx,
           skin,
-          BOARD_X,
+          L.boardX,
           0,
           current.x + c,
           current.y + r,
@@ -515,23 +525,24 @@ export function createTetrisEngine(
   }
   // Panel derecho: SCORE, LINES, LEVEL y NEXT, como el panel HTML del original.
   function drawStatsPanel() {
-    const x = BOARD_X + COLS * BLOCK + 30;
+    const x = L.boardX + COLS * BLOCK + (layout === "portrait" ? 14 : 30);
+    const step = layout === "portrait" ? 52 : 70; // separación entre stats
     drawLabel("SCORE", x, 24);
     drawValue(score.toLocaleString("es-ES"), x, 42);
-    drawLabel("LINES", x, 94);
-    drawValue(String(lines), x, 112);
-    drawLabel("LEVEL", x, 164);
-    drawValue(String(level), x, 182);
-    drawLabel("NEXT", x, 234);
-    const size = 4 * NEXT_BLOCK;
-    const y = 252;
+    drawLabel("LINES", x, 24 + step);
+    drawValue(String(lines), x, 42 + step);
+    drawLabel("LEVEL", x, 24 + step * 2);
+    drawValue(String(level), x, 42 + step * 2);
+    drawLabel("NEXT", x, 24 + step * 3);
+    const size = 4 * L.nextBlock;
+    const y = 42 + step * 3;
     drawBox(x + 0.5, y + 0.5, size, size);
     const shape = next.shape;
     const offX = Math.floor((4 - shape[0].length) / 2);
     const offY = Math.floor((4 - shape.length) / 2);
     for (let r = 0; r < shape.length; r++)
       for (let c = 0; c < shape[r].length; c++)
-        drawBlock(ctx, skin, x, y, offX + c, offY + r, shape[r][c], NEXT_BLOCK);
+        drawBlock(ctx, skin, x, y, offX + c, offY + r, shape[r][c], L.nextBlock);
   }
   // Panel izquierdo: lista CONTROLS del original.
   function drawControlsPanel() {
@@ -572,33 +583,34 @@ export function createTetrisEngine(
   // GAME OVER sin botón ni texto de reinicio: el reinicio llega desde React.
   function drawGameOver() {
     ctx.fillStyle = skin.overlayBg;
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(0, 0, L.w, L.h);
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = skin.overTitle;
     ctx.font = `800 28px ${SANS}`;
     ctx.letterSpacing = "4px";
-    ctx.fillText("GAME OVER", W / 2, H / 2 - 14);
+    ctx.fillText("GAME OVER", L.w / 2, L.h / 2 - 14);
     ctx.letterSpacing = "0px";
     ctx.fillStyle = skin.value;
     ctx.font = `14px ${MONO}`;
     ctx.fillText(
       `Puntuación: ${score.toLocaleString("es-ES")}`,
-      W / 2,
-      H / 2 + 22,
+      L.w / 2,
+      L.h / 2 + 22,
     );
   }
   // Líneas de barrido CRT (skin retro): una fila oscura cada 3 px.
   function drawScanlines() {
     ctx.fillStyle = skin.scanline;
-    for (let y = 0; y < H; y += 3) ctx.fillRect(0, y, W, 1);
+    for (let y = 0; y < L.h; y += 3) ctx.fillRect(0, y, L.w, 1);
   }
   function draw() {
     ctx.fillStyle = skin.bg;
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(0, 0, L.w, L.h);
     drawBoard();
     drawStatsPanel();
-    drawControlsPanel();
+    // En vertical (táctil) no hay teclado: sin panel CONTROLS.
+    if (layout === "landscape") drawControlsPanel();
     if (state === "gameover") drawGameOver();
     if (skin.scanlines) drawScanlines();
   }
@@ -629,6 +641,14 @@ export function createTetrisEngine(
     setSkin(id: string) {
       if (!isTetrisSkin(id)) return;
       skin = SKINS[id];
+      draw();
+    },
+    setLayout(next: GameLayout) {
+      if (!(next in LAYOUTS) || next === layout) return;
+      layout = next;
+      L = LAYOUTS[layout];
+      canvas.width = L.w; // redimensionar borra el canvas: se redibuja
+      canvas.height = L.h;
       draw();
     },
     setPaused(nextPaused: boolean) {

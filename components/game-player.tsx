@@ -1,5 +1,6 @@
 "use client";
 import {
+  type CSSProperties,
   useEffect,
   useRef,
   useState,
@@ -12,6 +13,7 @@ import { saveScore } from "@/app/juegos/[id]/jugar/actions";
 import type { Game } from "@/lib/data";
 import type { GameEngine } from "@/lib/games/types";
 import { GAME_REGISTRY } from "@/lib/games/registry";
+import { TouchControls } from "@/components/touch-controls";
 // Último nombre guardado con éxito, leído como store externo (sin setState en efectos).
 const NAME_KEY = "av_player_name";
 const MAX_NAME = 20;
@@ -59,6 +61,16 @@ function subscribeSkin(listener: () => void) {
   return () => {
     skinListeners.delete(listener);
   };
+}
+// Puntero táctil (pointer: coarse), como store externo; en el servidor, false.
+const COARSE_QUERY = "(pointer: coarse)";
+function subscribeCoarse(listener: () => void) {
+  const mq = window.matchMedia(COARSE_QUERY);
+  mq.addEventListener("change", listener);
+  return () => mq.removeEventListener("change", listener);
+}
+function readCoarse() {
+  return window.matchMedia(COARSE_QUERY).matches;
 }
 export function GamePlayer({
   game,
@@ -123,6 +135,11 @@ export function GamePlayer({
     writeStoredSkin(skins.storageKey, id);
   };
   const engineRef = useRef<GameEngine | null>(null);
+  // Modo táctil (SPEC 10): sin HUD (lo oculta el CSS), mando bajo la CRT y,
+  // si el juego lo declara, pantalla vertical.
+  const coarse = useSyncExternalStore(subscribeCoarse, readCoarse, () => false);
+  const touchMode = coarse && entry?.touch !== undefined;
+  const layout = touchMode && entry?.touch?.portrait ? "portrait" : "landscape";
   // Puntaje del mock, en una ref para que el intervalo decida el nivel sin efectos.
   const mockScoreRef = useRef(0);
   useEffect(() => {
@@ -141,6 +158,9 @@ export function GamePlayer({
   useEffect(() => {
     if (skin) engineRef.current?.setSkin?.(skin.id);
   }, [skin]);
+  useEffect(() => {
+    engineRef.current?.setLayout?.(layout);
+  }, [layout]);
   // Juego real: P/Escape alternan la pausa; perder foco o visibilidad pausa.
   useEffect(() => {
     if (!isReal) return;
@@ -186,8 +206,39 @@ export function GamePlayer({
     setSaved(false);
     setSaveError(null);
   };
+  // Selector de TEMA: en el HUD (escritorio) y en la fila táctil bajo el mando.
+  const skinSelect =
+    skins && skin ? (
+      <label className="skin-select">
+        <span className="skin-select-label">TEMA</span>
+        <select
+          value={skin.id}
+          aria-label="Tema visual del juego"
+          onChange={(e) => {
+            selectSkin(e.target.value);
+            // Sin foco: las flechas deben volver a mover el juego.
+            e.currentTarget.blur();
+          }}
+          // Con el selector enfocado, las teclas no llegan al juego.
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          {skins.options.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+    ) : null;
   return (
-    <div className="av-player fade-in">
+    <div
+      className={`av-player fade-in${entry?.touch ? " has-touch" : ""}`}
+      style={
+        entry?.touch?.portrait
+          ? ({ "--portrait-ratio": entry.touch.portrait } as CSSProperties)
+          : undefined
+      }
+    >
       <div className="player-hud">
         <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
           <div className="hud-stat">
@@ -220,28 +271,7 @@ export function GamePlayer({
           )}
         </div>
         <div className="hud-actions">
-          {skins && skin && (
-            <label className="skin-select">
-              <span className="skin-select-label">TEMA</span>
-              <select
-                value={skin.id}
-                aria-label="Tema visual del juego"
-                onChange={(e) => {
-                  selectSkin(e.target.value);
-                  // Sin foco: las flechas deben volver a mover el juego.
-                  e.currentTarget.blur();
-                }}
-                // Con el selector enfocado, las teclas no llegan al juego.
-                onKeyDown={(e) => e.stopPropagation()}
-              >
-                {skins.options.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
+          {skinSelect}
           <button className="btn yellow" onClick={() => setPaused((p) => !p)}>
             {paused ? "REANUDAR" : "PAUSA"}
           </button>
@@ -257,12 +287,15 @@ export function GamePlayer({
         </div>
       </div>
       <div className="crt">
-        <div className="crt-screen">
+        <div
+          className={`crt-screen${entry?.touch?.portrait ? " can-portrait" : ""}`}
+        >
           {entry ? (
             <entry.Canvas
               onReady={(engine) => {
                 engineRef.current = engine;
                 engine.setPaused(paused);
+                engine.setLayout?.(layout);
                 if (skin) engine.setSkin?.(skin.id);
               }}
               onScore={setScore}
@@ -283,7 +316,33 @@ export function GamePlayer({
               <div className="player-ship"></div>
             </div>
           )}
-          {paused && entry?.pauseOverlay === "compact" && (
+          {paused && touchMode && (
+            // Táctil: no hay HUD con REANUDAR, así que se reanuda tocando aquí.
+            <button
+              type="button"
+              className="crt-content touch-resume"
+              style={{ background: "rgba(0,0,0,0.6)", zIndex: 5 }}
+              onClick={() => setPaused(false)}
+            >
+              <div>
+                <div className="pixel neon-yellow" style={{ fontSize: 18 }}>
+                  EN PAUSA
+                </div>
+                <div
+                  className="mono"
+                  style={{
+                    fontSize: 11,
+                    color: "var(--ink-dim)",
+                    marginTop: 10,
+                    letterSpacing: "0.16em",
+                  }}
+                >
+                  TOCA PARA CONTINUAR
+                </div>
+              </div>
+            </button>
+          )}
+          {paused && !touchMode && entry?.pauseOverlay === "compact" && (
             // Franja arriba sin velo: los clics llegan al canvas (selector de nivel).
             <div
               style={{
@@ -315,7 +374,7 @@ export function GamePlayer({
               </div>
             </div>
           )}
-          {paused && entry?.pauseOverlay !== "compact" && (
+          {paused && !touchMode && entry?.pauseOverlay !== "compact" && (
             <div
               className="crt-content"
               style={{ background: "rgba(0,0,0,0.6)", zIndex: 5 }}
@@ -345,6 +404,24 @@ export function GamePlayer({
           <span>CARGA · 1MB</span>
         </div>
       </div>
+      {entry?.touch && (
+        <>
+          <TouchControls controls={entry.touch} />
+          {/* Fila táctil bajo el mando (solo pointer: coarse, por CSS). */}
+          <div className="touch-bar">
+            <button className="btn yellow" onClick={() => setPaused((p) => !p)}>
+              {paused ? "REANUDAR" : "PAUSA"}
+            </button>
+            {skinSelect}
+            <button
+              className="btn ghost"
+              onClick={() => router.push(`/juegos/${game.id}`)}
+            >
+              SALIR
+            </button>
+          </div>
+        </>
+      )}
       {over && (
         <div className="modal-bd">
           <div className="modal">
